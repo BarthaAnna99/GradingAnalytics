@@ -106,7 +106,12 @@ body <- dashboardBody(
                      actionButton("subject_select_all", "Select All"),
                      actionButton("subject_deselect_all", "Deselect All")
               ),
-              column(9)
+              column(1, class ='container',
+                     div(class = 'centered-element', h1(uiOutput("action_button_ui")))
+              ),
+              column(8, class = 'border',
+                     DTOutput("all_data")
+              )
             )
     )
   )

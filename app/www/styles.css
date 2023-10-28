@@ -122,10 +122,6 @@ p.italic {
   text-align: left;
 }
 
-.tbl {
-  padding-top: 10px;
-}
-
 .progress-bar {
   background-color: #BF9053;
 }
@@ -143,4 +139,47 @@ p.italic {
 
 .options {
   padding-left: 15px;
+}
+
+.btn#arrowbutton {
+  font-size: 56px;
+  font-style: bold;
+  color: #BF9053;
+  background-color: white;
+  border: none;
+}
+
+.btn#arrowbutton:hover,
+.btn#arrowbutton.active{
+  color: #1A213D;
+  border: none;
+}
+
+.container {
+  position: relative;
+  height: 550px;
+  text-align: center;
+}
+
+.centered-element {
+  margin: 0;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+#all_data {
+  font-size: 13px;
+  width: 100%;
+}
+
+.border {
+  border: solid #1A213D;
+}
+
+#all_data th.dt-center:nth-child(2) { /* Modify the width of the second column */
+  width: 10px;
+}
+#all_data td { /* Add line breaks in all table cells */
+  word-wrap: break-word;
 }
