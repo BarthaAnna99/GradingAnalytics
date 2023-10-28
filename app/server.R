@@ -86,7 +86,7 @@ server <- function(input, output, session) {
       classes <- unique(substring(classes_data$File_Name,1,5))
       all_classes(classes)
       if (!is.null(classes)) {
-        checkboxGroupInput("selected_classes", label = NULL, choices = classes, selected = classes)
+        checkboxGroupInput("selected_classes", label = NULL, choices = classes, selected = classes, inline = TRUE)
       }
     }
   })
@@ -99,13 +99,13 @@ server <- function(input, output, session) {
   # Select All button logic
   observeEvent(input$class_select_all, {
     classes <- all_classes()
-    updateCheckboxGroupInput(session, "selected_classes", choices = classes, selected = classes)
+    updateCheckboxGroupInput(session, "selected_classes", choices = classes, selected = classes, inline = TRUE)
   })
 
   # Deselect All button logic
   observeEvent(input$class_deselect_all, {
     classes <- all_classes()
-    updateCheckboxGroupInput("selected_classes", choices = classes, selected = NULL)
+    updateCheckboxGroupInput("selected_classes", choices = classes, selected = NULL, inline = TRUE)
   })
 
   # Create a reactive expression for checkbox options
@@ -116,7 +116,7 @@ server <- function(input, output, session) {
       subjects <- unique(gsub("\\.", "", sub("^(.*?)(_[0-9].*|\\.[^.]+)$", "\\1", subject_data$File_Name)))
       all_subjects(subjects)
       if (!is.null(subjects)) {
-        checkboxGroupInput("selected_subjects", label = NULL, choices = subjects, selected = subjects)
+        checkboxGroupInput("selected_subjects", label = NULL, choices = subjects, selected = subjects, inline = TRUE)
       }
     }
   })
@@ -129,20 +129,20 @@ server <- function(input, output, session) {
   # Select All button logic
   observeEvent(input$subject_select_all, {
     subjects <- all_subjects()
-    updateCheckboxGroupInput(session, "selected_subjects", choices = subjects, selected = subjects)
+    updateCheckboxGroupInput(session, "selected_subjects", choices = subjects, selected = subjects, inline = TRUE)
   })
 
   # Deselect All button logic
   observeEvent(input$subject_deselect_all, {
     subjects <- all_subjects()
-    updateCheckboxGroupInput(session, "selected_subjects", choices = subjects, selected = NULL)
+    updateCheckboxGroupInput(session, "selected_subjects", choices = subjects, selected = NULL, inline = TRUE)
   })
 
 
   # Render arrow button
   output$action_button_ui <- renderUI({
     if (!is.null(uploaded_files())) {
-      actionButton("arrowbutton", icon("chevron-right"))
+      actionButton("arrowbutton", icon("angle-down"))
     }
 
   })
@@ -208,6 +208,26 @@ server <- function(input, output, session) {
       merged_data <- merged_data[merged_data$Tantargy %in% selected_subjects_df$Subjects, ]
       result <- inner_join(classes_data, merged_data, by = "NeptunID")
 
+      # Remove those who reapplied
+      classes_data <- classes_data %>%
+        group_by(NeptunID, Evfolyam) %>%
+        arrange(desc(Evfolyam)) %>%
+        summarize(RowNumber = row_number())
+
+      classes_data <- classes_data %>%
+        filter(RowNumber == 1) %>%
+        select(NeptunID, Evfolyam)
+
+      subjects <- result %>%
+        filter(Tipus == c("Gyakorlati jegy", "Vizsgajegy")) %>%
+        group_by(Tantargy, Tipus) %>%
+        distinct(Tantargy, Tipus)
+
+      result <- result %>% select(NeptunID, Nem, Jegy, Eredmeny, Tantargy, Evfolyam)
+
+      result <- inner_join(result, subjects, by = "Tantargy")
+
+
       # Decode grade
       result <- result %>%
         mutate(
@@ -221,12 +241,34 @@ server <- function(input, output, session) {
           )
         )
 
-      result <- result %>% select(Evfolyam, NeptunID, Nem, Tantargy, Tipus, Jegy)
+      # Count exams
+      result <- result %>%
+        mutate(
+          Count_Elegtelen = str_count(result$Eredmeny, "Elégtelen"),
+          Count_Elégseges = str_count(result$Eredmeny, "Elégséges"),
+          Count_Kozepes = str_count(result$Eredmeny, "Közepes"),
+          Count_Jo = str_count(result$Eredmeny, "Jó"),
+          Count_Jeles = str_count(result$Eredmeny, "Jeles"),
+          Vizsgafelv_prep = Count_Elegtelen + Count_Elégseges + Count_Kozepes + Count_Jo + Count_Jeles
+          )
+
+
+      result_prep <- result %>%
+        group_by(NeptunID, Tantargy) %>%
+        arrange(desc(Evfolyam)) %>%
+        summarize(Vizsgafelv = sum(Vizsgafelv_prep), Targyfelv = n(), RowNumber = row_number())
+
+      QA_data <- inner_join(result_prep, result, by = c("NeptunID", "Tantargy"))
+
+      QA_data <- QA_data %>%
+        filter(RowNumber == 1) %>%
+        select(Evfolyam, NeptunID, Nem, Tantargy, Tipus, Jegy, Vizsgafelv, Targyfelv)
+
       #QA_Data <- data.frame(Name = c("Evfolyam", "NeptunID", "Nem", "Tantargy", "Tipus", "Jegy", "Targyfelv", "Vizsgafelv" ))
 
 
       output$all_data <- renderDT({
-        datatable(result, options = list(pageLength = 8))
+        datatable(QA_data, options = list(pageLength = 10))
       })
     }
 

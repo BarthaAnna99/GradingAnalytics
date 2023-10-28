@@ -46,7 +46,7 @@
 h1 {
   color: #BF9053;
   text-align: center;
-  margin-top: 7px;
+  margin-top: 5px;
   margin-bottom: 20px;
   font-weight: bold;
 }
@@ -59,7 +59,8 @@ h2 {
 h3 {
   color: #BF9053;
   font-size: 20px;
-  padding-bottom: 10px;
+  margin-bottom: 7px;
+  margin-top: 7px;
 }
 
 p.italic {
@@ -103,7 +104,11 @@ p.italic {
 }
 
 .separate2 {
+  font-family: 'General Sans', sans-serif;
   border-top: solid #1A213D;
+  border-bottom: solid #1A213D;
+  text-align: center;
+  padding-bottom: 17px;
 }
 
 .title {
@@ -131,55 +136,34 @@ p.italic {
   height: 80%;
 }
 
-.left_panel {
-  padding-left: 15px;
-  padding-bottom: 20px;
-  border: solid #1A213D;
-}
-
-.options {
-  padding-left: 15px;
-}
-
 .btn#arrowbutton {
   font-size: 56px;
   font-style: bold;
   color: #BF9053;
   background-color: white;
   border: none;
+  padding: 0px;
+  margin: 0px;
 }
 
 .btn#arrowbutton:hover,
 .btn#arrowbutton.active{
   color: #1A213D;
   border: none;
+  padding: 0px;
+  margin: 0px;
 }
 
 .container {
-  position: relative;
-  height: 550px;
   text-align: center;
-}
-
-.centered-element {
-  margin: 0;
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
+  padding: 0px;
+  margin: 0px;
 }
 
 #all_data {
   font-size: 13px;
-  width: 100%;
+}
+.selected-checkbox .shiny-input-container label.checkbox-inline input:checked + span {
+  background-color: #1A213D;
 }
 
-.border {
-  border: solid #1A213D;
-}
-
-#all_data th.dt-center:nth-child(2) { /* Modify the width of the second column */
-  width: 10px;
-}
-#all_data td { /* Add line breaks in all table cells */
-  word-wrap: break-word;
-}
