@@ -5,7 +5,8 @@ library("shinyFiles")
 library("readxl")
 library("dplyr")
 library("DT")
-library(stringr)
+library("stringr")
+library("fs")
 
 ### HEADER ###
 header <- dashboardHeader(
@@ -15,12 +16,13 @@ header <- dashboardHeader(
 
 ### SIDEBAR ###
 sidebar <- dashboardSidebar(
-  p(img(src = "Logo.svg", height = 70, width = 80)),
+  p(img(src = "logo.png", height = 65, width = 90)),
   sidebarMenu(
-    #menuItem("Introduction", tabName = "introduction"),
-    menuItem("Introduction", tabName = "introduction_alt"),
+    menuItem("Introduction", tabName = "introduction"),
+    #menuItem("Introduction", tabName = "introduction_alt"),
     menuItem("Import Data", tabName = "importdata"),
-    menuItem("Data Preparation", tabName = "preparedataset")
+    menuItem("Data Preparation", tabName = "preparedataset"),
+    menuItem("Program Structure", tabName = "programsturcture")
   )
 )
 
@@ -29,47 +31,47 @@ body <- dashboardBody(
   includeCSS("www/styles.css"),
 
   tabItems(
-  #   tabItem(tabName = "introduction",
-  #           h1("Introduction to Grading Analytics"),
-  #           p(class = "italic", "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."),
-  #           fluidRow(
-  #             column(4, class = "describe",
-  #                    h2(icon("upload"), "Import Data"),
-  #                    p("Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginiar")
-  #             ),
-  #             column(4, class = "describe",
-  #                    h2(icon("table"), "Prepare Dataset"),
-  #                    p("Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia")
-  #             ),
-  #             column(4, class = "describe",
-  #                    h2(icon("sitemap"), "Program Structure"),
-  #                    p("Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia")
-  #             )
-  #           ),
-  #           fluidRow(
-  #             column(6, class = "describe2",
-  #                    h2(icon("percent"), "Metrics"),
-  #                    p("Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words, consectetur")
-  #             ),
-  #             column(6, class = "describe3",
-  #                    h2(icon("spinner"), "Modeling"),
-  #                    p("Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words, consectetur")
-  #             )
-  #           )
-  #   ),
-
-    tabItem(tabName = "introduction_alt",
+    tabItem(tabName = "introduction",
             h1("Introduction to Grading Analytics"),
             p(class = "italic", "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."),
             fluidRow(
-              column(12, class = "describe",
-                     br(),
-                     br(),
-                     p(img(src = "process.png", width="950px", height="270"))
-                    )
+              column(4, class = "describe",
+                     h2(icon("upload", class = "my-icon"), "Import Data"),
+                     p("Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginiar")
+              ),
+              column(4, class = "describe",
+                     h2(icon("table", class = "my-icon"), "Prepare Dataset"),
+                     p("Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia")
+              ),
+              column(4, class = "describe",
+                     h2(icon("sitemap", class = "my-icon"), "Program Structure"),
+                     p("Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia")
+              )
+            ),
+            fluidRow(
+              column(6, class = "describe2",
+                     h2(icon("percent", class = "my-icon"), "Metrics"),
+                     p("Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia")
+              ),
+              column(6, class = "describe3",
+                     h2(icon("spinner", class = "my-icon"), "Modeling"),
+                     p("Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia")
+              )
             )
-
     ),
+
+    # tabItem(tabName = "introduction_alt",
+    #         h1("Introduction to Grading Analytics"),
+    #         p(class = "italic", "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."),
+    #         fluidRow(
+    #           column(12, class = "describe",
+    #                  br(),
+    #                  br(),
+    #                  p(img(src = "process.png", width="950px", height="270"))
+    #                 )
+    #         )
+    #
+    # ),
 
     tabItem(tabName = "importdata",
             h1("Import Data"),
@@ -96,18 +98,20 @@ body <- dashboardBody(
     tabItem(tabName = "preparedataset",
             h1("Data Preparation"),
             fluidRow( class = 'separate2',
+              column(1),
               column(4,
-                     h3("Select the classes"),
+                     h3("Select Classes"),
                      uiOutput("class_checkboxes"),
                      actionButton("class_select_all", "Select All"),
                      actionButton("class_deselect_all", "Deselect All")
               ),
-              column(8,
-                     h3("Select the subjects"),
+              column(6,
+                     h3("Select Subjects"),
                      uiOutput("subject_checkboxes"),
                      actionButton("subject_select_all", "Select All"),
                      actionButton("subject_deselect_all", "Deselect All")
-              )
+              ),
+              column(1)
             ),
             fluidRow(
               column(12, class ='container',
@@ -119,7 +123,23 @@ body <- dashboardBody(
                      DTOutput("all_data")
               )
             )
+    ),
+
+    tabItem(tabName = "programsturcture",
+            h1("Program Structure"),
+            fluidRow( class = 'separate2',
+                      column(1),
+                      column(3,
+                             h3("Specify the Semesters"),
+                             uiOutput("semester_label_input")
+                      ),
+                      column(3,
+                             uiOutput("semester_input")
+                      ),
+                      column(1)
+            )
     )
+
   )
 )
 

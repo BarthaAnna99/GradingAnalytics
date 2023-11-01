@@ -46,8 +46,9 @@
 h1 {
   color: #BF9053;
   text-align: center;
-  margin-top: 5px;
-  margin-bottom: 20px;
+  margin-top: 0px;
+  padding-top: 0px;
+  margin-bottom: 19px;
   font-weight: bold;
 }
 
@@ -61,6 +62,12 @@ h3 {
   font-size: 20px;
   margin-bottom: 7px;
   margin-top: 7px;
+}
+
+.my-icon {
+  font-size: 26px;
+  padding-top: 5px;
+  margin-right: 5px;
 }
 
 p.italic {
@@ -83,7 +90,7 @@ p.italic {
 }
 
 .describe2 {
-  padding-top: 20px;
+  padding-top: 30px;
   padding-left: 200px;
   padding-right: 60px;
   text-align: center;
@@ -107,8 +114,8 @@ p.italic {
   font-family: 'General Sans', sans-serif;
   border-top: solid #1A213D;
   border-bottom: solid #1A213D;
-  text-align: center;
   padding-bottom: 17px;
+  text-align: center;
 }
 
 .title {
@@ -134,6 +141,18 @@ p.italic {
 .my-modal-dialog {
   width: 100%;
   height: 80%;
+}
+
+#subject_checkboxes {
+  padding-left: 10px;
+  padding-bottom: 10px;
+  display: inline-block;
+  width: 100%;
+}
+
+#class_checkboxes {
+  padding-left: 10px;
+  padding-bottom: 10px;
 }
 
 .btn#arrowbutton {
@@ -163,7 +182,11 @@ p.italic {
 #all_data {
   font-size: 13px;
 }
-.selected-checkbox .shiny-input-container label.checkbox-inline input:checked + span {
-  background-color: #1A213D;
+
+.form-group {
+  font-size: 12px;
+  padding: 0px;
+  margin: 0px;
 }
+
 

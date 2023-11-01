@@ -27,10 +27,12 @@ server <- function(input, output, session) {
     # Get a list of all XLSX files in the extracted subfolders
     file_list <- list.files(temp_dir_path, pattern = "\\.xlsx$", recursive = TRUE, full.names = TRUE)
 
+    file_list <- fs::path(file_list)
+
     file_list_df <- data.frame(
                         Path = file_list,
-                        Folder_Name = sub(".*/", "", dirname(file_list)),
-                        File_Name = basename(file_list)
+                        Folder_Name = fs::path(file_list) %>% dirname() %>% basename(),#sub(".*/", "", dirname(file_list)),
+                        File_Name = fs::path(file_list) %>% basename()#basename(file_list)
                     )
 
     temp_dir_data(file_list_df)
@@ -86,7 +88,7 @@ server <- function(input, output, session) {
       classes <- unique(substring(classes_data$File_Name,1,5))
       all_classes(classes)
       if (!is.null(classes)) {
-        checkboxGroupInput("selected_classes", label = NULL, choices = classes, selected = classes, inline = TRUE)
+        checkboxGroupInput("selected_classes", label = NULL, choices = classes, selected = classes, inline= TRUE)
       }
     }
   })
@@ -99,13 +101,13 @@ server <- function(input, output, session) {
   # Select All button logic
   observeEvent(input$class_select_all, {
     classes <- all_classes()
-    updateCheckboxGroupInput(session, "selected_classes", choices = classes, selected = classes, inline = TRUE)
+    updateCheckboxGroupInput(session, "selected_classes", choices = classes, selected = classes, inline= TRUE)
   })
 
   # Deselect All button logic
   observeEvent(input$class_deselect_all, {
     classes <- all_classes()
-    updateCheckboxGroupInput("selected_classes", choices = classes, selected = NULL, inline = TRUE)
+    updateCheckboxGroupInput("selected_classes", choices = classes, selected = NULL, inline= TRUE)
   })
 
   # Create a reactive expression for checkbox options
@@ -113,10 +115,10 @@ server <- function(input, output, session) {
     if (!is.null(temp_dir_data())) {
       selected_item_df <- temp_dir_data()
       subject_data <- subset(selected_item_df, !grepl("evfolyam", Folder_Name, ignore.case = TRUE))
-      subjects <- unique(gsub("\\.", "", sub("^(.*?)(_[0-9].*|\\.[^.]+)$", "\\1", subject_data$File_Name)))
+      subjects <- sort(unique(gsub("\\.", "", sub("^(.*?)(_[0-9].*|\\.[^.]+)$", "\\1", subject_data$File_Name))))
       all_subjects(subjects)
       if (!is.null(subjects)) {
-        checkboxGroupInput("selected_subjects", label = NULL, choices = subjects, selected = subjects, inline = TRUE)
+        checkboxGroupInput("selected_subjects", label = NULL, choices = subjects, selected = subjects, inline= TRUE)
       }
     }
   })
@@ -129,15 +131,52 @@ server <- function(input, output, session) {
   # Select All button logic
   observeEvent(input$subject_select_all, {
     subjects <- all_subjects()
-    updateCheckboxGroupInput(session, "selected_subjects", choices = subjects, selected = subjects, inline = TRUE)
+    updateCheckboxGroupInput(session, "selected_subjects", choices = subjects, selected = subjects, inline= TRUE)
   })
 
   # Deselect All button logic
   observeEvent(input$subject_deselect_all, {
     subjects <- all_subjects()
-    updateCheckboxGroupInput(session, "selected_subjects", choices = subjects, selected = NULL, inline = TRUE)
+    updateCheckboxGroupInput(session, "selected_subjects", choices = subjects, selected = NULL, inline= TRUE)
   })
 
+  # Create a dynamic UI for selectOption elements
+  label_options <- reactive({
+    if (!is.null(all_subjects())) {
+      subjects <- all_subjects()
+      subjects <- data.frame(Subjects = subjects)
+      options <- c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15)
+      subject_count <- nrow(subjects)
+      inputs <- lapply(1:subject_count, function(i) {
+        p(subjects$Subjects[i])
+      })
+      do.call(tagList, inputs)
+    }
+  })
+
+  # Render the dynamic textipnuts
+  output$semester_label_input <- renderUI({
+    label_options()
+  })
+
+  # Create a dynamic UI for selectOption elements
+  semester_options <- reactive({
+    if (!is.null(all_subjects())) {
+      subjects <- all_subjects()
+      subjects <- data.frame(Subjects = subjects)
+      options <- c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15)
+      subject_count <- nrow(subjects)
+      inputs <- lapply(1:subject_count, function(i) {
+        selectInput(inputId = paste0("subject_", i), label = subjects$Subjects[i], choices = options, width = "60px")
+      })
+      do.call(tagList, inputs)
+    }
+  })
+
+  # Render the dynamic textipnuts
+  output$semester_input <- renderUI({
+    semester_options()
+  })
 
   # Render arrow button
   output$action_button_ui <- renderUI({
@@ -268,7 +307,7 @@ server <- function(input, output, session) {
 
 
       output$all_data <- renderDT({
-        datatable(QA_data, options = list(pageLength = 10))
+        datatable(QA_data, options = list(pageLength = 10), selection = 'none')
       })
     }
 

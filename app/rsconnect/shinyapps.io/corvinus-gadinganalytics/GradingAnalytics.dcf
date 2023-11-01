@@ -1,0 +1,12 @@
+name: GradingAnalytics
+title: GradingAnalytics
+username: corvinus-gadinganalytics
+account: corvinus-gadinganalytics
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 10344193
+bundleId:
+url: https://corvinus-gadinganalytics.shinyapps.io/GradingAnalytics/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
