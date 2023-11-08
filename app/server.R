@@ -9,8 +9,12 @@ server <- function(input, output, session) {
   merged_data <- reactiveVal(NULL)
   selected_classes_df <- data.frame(Classes = character(0))
   selected_subjects_df <- data.frame(Subjects = character(0))
+  GA_data <- reactiveVal(NULL)
+  GA_final_data <- reactiveVal(NULL)
+  selected_classes_filter_df <- reactiveVal(NULL)
+  selected_subjects_filter_df <- reactiveVal(NULL)
 
-  ############ Uploding zip file #############
+  ############ Uploading zip file #############
   observeEvent(input$upload, {
 
     req(input$zipFile)
@@ -140,43 +144,6 @@ server <- function(input, output, session) {
     updateCheckboxGroupInput(session, "selected_subjects", choices = subjects, selected = NULL, inline= TRUE)
   })
 
-  # Create a dynamic UI for selectOption elements
-  label_options <- reactive({
-    if (!is.null(all_subjects())) {
-      subjects <- all_subjects()
-      subjects <- data.frame(Subjects = subjects)
-      options <- c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15)
-      subject_count <- nrow(subjects)
-      inputs <- lapply(1:subject_count, function(i) {
-        p(subjects$Subjects[i])
-      })
-      do.call(tagList, inputs)
-    }
-  })
-
-  # Render the dynamic textipnuts
-  output$semester_label_input <- renderUI({
-    label_options()
-  })
-
-  # Create a dynamic UI for selectOption elements
-  semester_options <- reactive({
-    if (!is.null(all_subjects())) {
-      subjects <- all_subjects()
-      subjects <- data.frame(Subjects = subjects)
-      options <- c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15)
-      subject_count <- nrow(subjects)
-      inputs <- lapply(1:subject_count, function(i) {
-        selectInput(inputId = paste0("subject_", i), label = subjects$Subjects[i], choices = options, width = "60px")
-      })
-      do.call(tagList, inputs)
-    }
-  })
-
-  # Render the dynamic textipnuts
-  output$semester_input <- renderUI({
-    semester_options()
-  })
 
   # Render arrow button
   output$action_button_ui <- renderUI({
@@ -219,6 +186,7 @@ server <- function(input, output, session) {
 
           # Add a column for the file name
           df <- df %>% mutate(Tantargy = gsub("\\.", "", sub("^(.*?)(_[0-9].*|\\.[^.]+)$", "\\1", tools::file_path_sans_ext(basename(file_path)))))
+          df <- df %>% mutate(Tantargy_long = gsub("\\.", "", tools::file_path_sans_ext(basename(file_path))))
 
         }
       })
@@ -244,25 +212,25 @@ server <- function(input, output, session) {
 
       # Filter data to selected values
       classes_data <- classes_data[classes_data$Evfolyam %in% selected_classes_df$Classes, ]
-      merged_data <- merged_data[merged_data$Tantargy %in% selected_subjects_df$Subjects, ]
-      result <- inner_join(classes_data, merged_data, by = "NeptunID")
 
       # Remove those who reapplied
-      classes_data <- classes_data %>%
-        group_by(NeptunID, Evfolyam) %>%
-        arrange(desc(Evfolyam)) %>%
-        summarize(RowNumber = row_number())
+      NeptunID_df <- classes_data %>%
+        group_by(NeptunID) %>%
+        summarize(cnt = n()) %>%
+        filter(cnt == 1)
 
-      classes_data <- classes_data %>%
-        filter(RowNumber == 1) %>%
-        select(NeptunID, Evfolyam)
+      classes_data <- classes_data[classes_data$NeptunID %in% NeptunID_df$NeptunID, ]
+
+      merged_data <- merged_data[merged_data$Tantargy %in% selected_subjects_df$Subjects, ]
+
+      result <- inner_join(classes_data, merged_data, by = "NeptunID")
 
       subjects <- result %>%
         filter(Tipus == c("Gyakorlati jegy", "Vizsgajegy")) %>%
         group_by(Tantargy, Tipus) %>%
         distinct(Tantargy, Tipus)
 
-      result <- result %>% select(NeptunID, Nem, Jegy, Eredmeny, Tantargy, Evfolyam)
+      result <- result %>% select(NeptunID, Nem, Jegy, Eredmeny, Tantargy, Evfolyam, Tantargy_long)
 
       result <- inner_join(result, subjects, by = "Tantargy")
 
@@ -291,31 +259,383 @@ server <- function(input, output, session) {
           Vizsgafelv_prep = Count_Elegtelen + Count_Elégseges + Count_Kozepes + Count_Jo + Count_Jeles
           )
 
-
       result_prep <- result %>%
         group_by(NeptunID, Tantargy) %>%
         arrange(desc(Evfolyam)) %>%
         summarize(Vizsgafelv = sum(Vizsgafelv_prep), Targyfelv = n(), RowNumber = row_number())
 
-      QA_data <- inner_join(result_prep, result, by = c("NeptunID", "Tantargy"))
+      GA_data <- inner_join(result_prep, result, by = c("NeptunID", "Tantargy"))
 
-      QA_data <- QA_data %>%
+      GA_data <- GA_data %>%
         filter(RowNumber == 1) %>%
+        select(Evfolyam, NeptunID, Nem, Tantargy, Tipus, Jegy, Vizsgafelv, Targyfelv, Tantargy_long)
+
+      # Remove duplicates from GA_data
+      GA_data_prep <- GA_data %>%
+        group_by(NeptunID, Tantargy) %>%
+        summarize(Tantargy_long = max(Tantargy_long)) %>%
+        select(NeptunID, Tantargy, Tantargy_long)
+
+      GA_data <- inner_join(GA_data, GA_data_prep, by = c("NeptunID", "Tantargy", "Tantargy_long"))
+
+      GA_data <- GA_data %>%
         select(Evfolyam, NeptunID, Nem, Tantargy, Tipus, Jegy, Vizsgafelv, Targyfelv)
 
-      #QA_Data <- data.frame(Name = c("Evfolyam", "NeptunID", "Nem", "Tantargy", "Tipus", "Jegy", "Targyfelv", "Vizsgafelv" ))
+      GA_data$Nem <- gsub("Nõ", "Nő", GA_data$Nem)
 
+      GA_data(GA_data)
 
       output$all_data <- renderDT({
-        datatable(QA_data, options = list(pageLength = 10), selection = 'none')
+        datatable(GA_data, options = list(pageLength = 7), selection = 'none')
       })
     }
 
   })
 
+  ################ Program Sructure #############
+  # Create a dynamic UI for selectOption elements
+  label_options <- reactive({
+    if (!is.null(GA_data())) {
+      subjects <- GA_data()
+      subjects <- data.frame(Subjects = unique(subjects$Tantargy))
+      subject_count <- nrow(subjects)
+      inputs <- lapply(1:subject_count, function(i) {
+        p(subjects$Subjects[i])
+      })
+      do.call(tagList, inputs)
+    }
+  })
 
+  # Render the dynamic textipnuts
+  output$semester_label_input <- renderUI({
+    label_options()
+  })
 
+  # Create a dynamic UI for selectOption elements
+  semester_options <- reactive({
+    if (!is.null(GA_data())) {
+      subjects <- GA_data()
+      subjects <- data.frame(Subjects = unique(subjects$Tantargy))
+      options <- c(1,2,3,4,5,6,7,8,9)
+      subject_count <- nrow(subjects)
+      inputs <- lapply(1:subject_count, function(i) {
+        selectInput(inputId = subjects$Subjects[i], label = NULL, choices = options, width = "60px")
+      })
+      do.call(tagList, inputs)
+    }
+  })
 
+  # Render the dynamic textipnuts
+  output$semester_input <- renderUI({
+    semester_options()
+  })
 
+  # Render arrow button
+  output$action_right_button_ui <- renderUI({
+    if (!is.null(GA_data())) {
+      actionButton("arrowrightbutton", icon("chevron-right"))
+    }
+  })
+
+  observeEvent(input$arrowrightbutton, {
+    subjects <- GA_data()
+    subjects <- data.frame(Subjects = unique(subjects$Tantargy))
+    subject_count <- nrow(subjects)
+    program_structure_df <- data.frame(Subject = character(0), Semester = numeric(0))
+    for (i in 1:subject_count) {
+      current_input <- subjects[i,]
+      selected_value <- input[[current_input]]
+      new_row <- data.frame(Subject = current_input, Semester = selected_value)
+      program_structure_df <- rbind(program_structure_df, new_row)
+    }
+
+    GA_data <- GA_data()
+
+    GA_data <- inner_join(GA_data, program_structure_df, by = c("Tantargy" = "Subject"))
+
+    GA_final_data(GA_data)
+
+    listagg_program_structure_df <- program_structure_df %>%
+      group_by(Semester) %>%
+      summarise(Subject = paste(Subject, collapse = ", ")) %>%
+      ungroup() %>%
+      mutate(Semester = as.numeric(Semester)) %>%
+      arrange(Semester)%>%
+      mutate(Semester = paste(Semester, '. semester'))
+
+    # Define the background coloring
+    app_colors <- c('#FCF1C8', '#F7D865', '#DFC8A9', '#CEAB7C', '#AEB6BE', '#99A3AD', '#D9E1F2', '#8EA9DB','#FCF1C8', '#F7D865', '#DFC8A9', '#CEAB7C', '#AEB6BE', '#99A3AD', '#D9E1F2', '#8EA9DB')
+
+    # Create used_colors as a subset of app_colors
+    used_colors <- app_colors[1:(length(listagg_program_structure_df$Semester) + 1)]
+
+    # Render the table using DT
+    output$program_structure_table <- renderDT({
+      datatable(
+        listagg_program_structure_df,
+        options = list(paging = FALSE, searching = FALSE, ordering = FALSE, info = FALSE),
+        selection = 'none',
+        rownames = FALSE,
+        class = "cell-border",
+        colnames = rep("", ncol(listagg_program_structure_df))
+      )  %>%
+        formatStyle(
+          'Semester',
+          target = 'row',
+          backgroundColor = styleInterval(
+            listagg_program_structure_df$Semester, used_colors)
+          ) %>%
+        formatStyle(
+          names(listagg_program_structure_df),
+          target = 'cell',
+          valueColumns = names(listagg_program_structure_df),
+          lineHeight = "30px",
+          textAlign = "center"
+        )%>%
+        formatStyle(
+          'Semester',
+          target = 'cell',
+          width = '100px'
+        )
+    })
+  })
+
+  ############### Vizualization #########
+  output$bar_chart <- renderPlot({
+
+    if (!is.null(GA_final_data())) {
+      GA_data <- GA_final_data()
+
+      data <- GA_data %>%
+        group_by(Evfolyam) %>%
+        summarise(
+          Number_of_Students = n_distinct(NeptunID)
+        )
+
+      # Create the bar chart
+      bar_chart <- ggplot(data, aes(x = factor(Evfolyam), y = Number_of_Students)) +
+        geom_bar(stat = "identity", fill = "#1A213D") +
+        geom_text(aes(label = Number_of_Students, fontface = "bold"), position = position_stack(vjust = 0.5), size = 4, color = 'white') +
+        labs(x = "Classes", y = "Number of Students") +
+        theme_minimal() +
+        theme(
+              axis.text.x = element_text(size = 12),
+              axis.text.y = element_text(size = 12),
+              axis.title.x = element_text(size = 14),
+              axis.title.y = element_text(size = 14)
+        )
+
+      print(bar_chart)
+    }
+
+  })
+
+  output$line_chart <- renderPlot({
+
+    if (!is.null(GA_final_data())) {
+      GA_data <- GA_final_data()
+
+      NeptunID <- data.frame(NeptunID = unique(GA_data$NeptunID))
+      # Calculate Total_students
+      Total_students <- nrow(NeptunID)
+
+      Reprep_data <- GA_data %>%
+        group_by(Semester, Tantargy) %>%
+        summarise(
+          Max_students = n_distinct(NeptunID)
+        )
+
+      # Prepare the data
+      Prep_data <- Reprep_data %>%
+        group_by(Semester) %>%
+        summarise(
+          Real_student_num = n_distinct(Tantargy) * max(Max_students),
+          Expected_student_num = n_distinct(Tantargy) * Total_students
+        )
+
+      # Calculate Percentage
+      data <- Prep_data %>%
+        mutate(Percentage = 1 - Real_student_num / Expected_student_num) %>%
+        select(Semester, Percentage)
+
+      line_chart <- ggplot(data, aes(x = Semester, y = Percentage, group = 1)) +
+        geom_line(color = "#1A213D") +
+        geom_point(size = 3, color = "#BF9053", fill = "white") +
+        geom_text(aes(label = round(Percentage, 2)), vjust = 2) +
+        theme_minimal() +
+        theme(
+              axis.text.x = element_text(size = 12),
+              axis.text.y = element_text(size = 12),
+              axis.title.x = element_text(size = 14),
+              axis.title.y = element_text(size = 14)
+        )
+
+      print(line_chart)
+    }
+
+  })
+
+  output$pie_chart <- renderPlot({
+
+    if (!is.null(GA_final_data())) {
+      GA_data <- GA_final_data()
+
+      data <- GA_data %>%
+        group_by(Nem) %>%
+        summarise(
+          Number_of_Students = n_distinct(NeptunID)
+        )
+
+      # Create the bar chart
+      pie_chart <- ggplot(data, aes(x = "", y = Number_of_Students, fill = Nem)) +
+        geom_bar(stat = "identity", width = 1) +
+        coord_polar(theta = "y") +
+        geom_text(aes(label = Number_of_Students), position = position_stack(vjust = 0.5), size = 5, color = 'white', family = "bold") +
+        theme_void() +
+        scale_fill_manual(values = c("#1A213D", "#BF9053", '#FCF1C8', '#F7D865', '#DFC8A9', '#CEAB7C', '#AEB6BE', '#99A3AD')) +
+        theme(axis.text.y = element_text(size = 12),
+              legend.title = element_text(size=12),
+              legend.text = element_text(size=12)
+              )
+
+      print(pie_chart)
+    }
+
+  })
+
+  # Create a reactive expression for checkbox options
+  class_options_filter <- reactive({
+    if (!is.null(all_classes())) {
+      options <- all_classes()
+      if (!is.null(options)) {
+        selected_classes_filter_df(options)
+        checkboxGroupInput("selected_classes_filter", label = NULL, choices = options, selected = options, inline= TRUE)
+      }
+    }
+  })
+
+  # Render the dynamic checkboxes
+  output$class_checkboxes_filter <- renderUI({
+    if(!is.null(class_options_filter())) {
+      class_options_filter()
+    }
+  })
+
+  # Create a reactive expression for checkbox options
+  subject_options_filter <- reactive({
+    if (!is.null(all_subjects())) {
+      options <- all_subjects()
+      selected_subjects_filter_df(options[1])
+      selectInput(inputId = "selected_subjects_filter", label = NULL, choices = options, selected = options[1], width = "260px")
+    }
+  })
+
+  # Render the dynamic checkboxes
+  output$subject_checkboxes_filter <- renderUI({
+    subject_options_filter()
+  })
+
+  #Change class in filter
+  observeEvent(input$selected_classes_filter, {
+    selected_classes_filter_df(input$selected_classes_filter)
+  })
+
+  #Change subject in filter
+  observeEvent(input$selected_subjects_filter, {
+    selected_subjects_filter_df(input$selected_subjects_filter)
+  })
+
+  output$bar_chart_grades <- renderPlot({
+    if (!is.null(GA_final_data()) && !is.null(selected_classes_filter_df()) && !is.null(selected_subjects_filter_df()) ) {
+      GA_data <- GA_final_data()
+      class <- selected_classes_filter_df()
+      subject <- selected_subjects_filter_df()
+      GA_data <- GA_data[GA_data$Evfolyam %in% class,]
+      GA_data <- GA_data[GA_data$Tantargy %in% subject, ]
+
+      data <- GA_data %>%
+        group_by(Jegy) %>%
+        summarise(
+          Number_of_grades = n()
+        )
+
+      # Create the bar chart
+      bar_chart_grades <- ggplot(data, aes(x = factor(Jegy), y = Number_of_grades)) +
+        geom_bar(stat = "identity", fill = "#1A213D") +
+        geom_text(aes(label = Number_of_grades), nudge_y = 1.5, vjust = 0, size = 4, color = '#1A213D') +
+        labs(x = "Number of grades", y = "Number of students") +
+        theme_minimal() +
+        theme(
+          axis.text.x = element_text(size = 12),
+          axis.text.y = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.title.y = element_text(size = 14)
+        )
+
+      print(bar_chart_grades)
+    }
+  })
+
+  output$bar_chart_exams <- renderPlot({
+    if (!is.null(GA_final_data()) && !is.null(selected_classes_filter_df()) && !is.null(selected_subjects_filter_df()) ) {
+      GA_data <- GA_final_data()
+      class <- selected_classes_filter_df()
+      subject <- selected_subjects_filter_df()
+      GA_data <- GA_data[GA_data$Evfolyam %in% class,]
+      GA_data <- GA_data[GA_data$Tantargy %in% subject, ]
+
+      data <- GA_data %>%
+        group_by(Vizsgafelv) %>%
+        summarise(
+          Number_of_exams = n()
+        )
+
+      # Create the bar chart
+      bar_chart_exams <- ggplot(data, aes(x = factor(Vizsgafelv), y = Number_of_exams)) +
+        geom_bar(stat = "identity", fill = "#1A213D") +
+        geom_text(aes(label = Number_of_exams), nudge_y = 1.5, vjust = 0, size = 4, color = '#1A213D') +
+        labs(x = "Number of exams", y = NULL) +
+        theme_minimal() +
+        theme(
+          axis.text.x = element_text(size = 12),
+          axis.text.y = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.title.y = element_text(size = 14)
+        )
+
+      print(bar_chart_exams)
+    }
+  })
+
+  output$bar_chart_subjects <- renderPlot({
+    if (!is.null(GA_final_data()) && !is.null(selected_classes_filter_df()) && !is.null(selected_subjects_filter_df()) ) {
+      GA_data <- GA_final_data()
+      class <- selected_classes_filter_df()
+      subject <- selected_subjects_filter_df()
+      GA_data <- GA_data[GA_data$Evfolyam %in% class,]
+      GA_data <- GA_data[GA_data$Tantargy %in% subject, ]
+
+      data <- GA_data %>%
+        group_by(Targyfelv) %>%
+        summarise(
+          Number_of_course_register = n()
+        )
+
+      # Create the bar chart
+      bar_chart_subjects <- ggplot(data, aes(x = factor(Targyfelv), y = Number_of_course_register)) +
+        geom_bar(stat = "identity", fill = "#1A213D") +
+        geom_text(aes(label = Number_of_course_register), nudge_y = 1.5, vjust = 0, size = 4, color = '#1A213D') +
+        labs(x = "Number of course registry", y = NULL) +
+        theme_minimal() +
+        theme(
+          axis.text.x = element_text(size = 12),
+          axis.text.y = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.title.y = element_text(size = 14)
+        )
+
+      print(bar_chart_subjects)
+    }
+  })
 
 }

@@ -118,6 +118,21 @@ p.italic {
   text-align: center;
 }
 
+.separate3 {
+  font-family: 'General Sans', sans-serif;
+  border-top: solid #1A213D;
+  padding-bottom: 10px;
+  text-align: center;
+}
+
+.separate4 {
+  font-family: 'General Sans', sans-serif;
+  border-top: solid #1A213D;
+  padding-bottom: 10px;
+  margin-top: 15px;
+  text-align: center;
+}
+
 .title {
   padding-top: 20px;
   text-align: right;
@@ -153,6 +168,8 @@ p.italic {
 #class_checkboxes {
   padding-left: 10px;
   padding-bottom: 10px;
+  font-size: 13px;
+
 }
 
 .btn#arrowbutton {
@@ -161,22 +178,73 @@ p.italic {
   color: #BF9053;
   background-color: white;
   border: none;
+  height: 60px;
   padding: 0px;
-  margin: 0px;
 }
 
 .btn#arrowbutton:hover,
-.btn#arrowbutton.active{
+.btn#arrowbutton.active
+{
   color: #1A213D;
   border: none;
+  height: 60px;
+  padding: 0px;
+}
+
+.center {
+  text-align: center;
   padding: 0px;
   margin: 0px;
 }
 
-.container {
+.centerLeft {
   text-align: center;
+  padding: 10px 0px 0px 3px ;
+  margin: 0px;
+}
+
+.centerMiddle {
+  text-align: center;
+  padding: 10px 3px 0px 5px ;
+  margin: 0px;
+}
+
+.centerRight {
+  text-align: center;
+  padding: 10px 3px 0px 0px ;
+  margin: 0px;
+}
+
+.right {
+  text-align: right;
   padding: 0px;
   margin: 0px;
+}
+
+.right2 {
+  text-align: right;
+  padding-top: 0px;
+  padding-bottom: 0px;
+  padding-right: 15px;
+  padding-left: 0px;
+  margin: 0px;
+}
+
+.left {
+  text-align: left;
+  padding: 0px;
+  margin: 0px;
+}
+
+#class_checkboxes_filter {
+  padding-left: 15px;
+  padding-top: 10px;
+  font-size: 15px;
+}
+
+#subject_checkboxes_filter {
+  padding-top: 2px;
+  font-size: 15px;
 }
 
 #all_data {
@@ -189,4 +257,58 @@ p.italic {
   margin: 0px;
 }
 
+.semester_label{
+  text-align: left;
+  line-height: 2.45;
+  padding-top: 0px;
+  padding-left: 60px;
+}
 
+.semester_input {
+  text-align: left;
+  padding: 0px;
+  margin: 0px;
+  height: 20px;
+  line-height: 0.3;
+  padding-top: 0px;
+}
+
+.container {
+  position: relative;
+  height: 550px;
+  text-align: center;
+}
+
+.centered-element {
+  margin: 0;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.btn#arrowrightbutton {
+  font-size: 56px;
+  font-style: bold;
+  color: #BF9053;
+  background-color: white;
+  border: none;
+  padding: 0px;
+  margin: 0px;
+}
+
+.btn#arrowrightbutton:hover,
+.btn#arrowrightbutton.active
+{
+  color: #1A213D;
+  border: none;
+  padding: 0px;
+  margin: 0px;
+}
+
+.sorting-disabled {
+  padding: 0px;
+}
+
+.structure {
+  padding-right: 60px;
+}

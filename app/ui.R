@@ -7,6 +7,7 @@ library("dplyr")
 library("DT")
 library("stringr")
 library("fs")
+library("ggplot2")
 
 ### HEADER ###
 header <- dashboardHeader(
@@ -22,7 +23,9 @@ sidebar <- dashboardSidebar(
     #menuItem("Introduction", tabName = "introduction_alt"),
     menuItem("Import Data", tabName = "importdata"),
     menuItem("Data Preparation", tabName = "preparedataset"),
-    menuItem("Program Structure", tabName = "programsturcture")
+    menuItem("Program Structure", tabName = "programsturcture"),
+    menuItem("Visualization", tabName = "visualization"),
+    menuItem("Metrics", tabName = "metrics")
   )
 )
 
@@ -99,13 +102,13 @@ body <- dashboardBody(
             h1("Data Preparation"),
             fluidRow( class = 'separate2',
               column(1),
-              column(4,
+              column(3,
                      h3("Select Classes"),
                      uiOutput("class_checkboxes"),
                      actionButton("class_select_all", "Select All"),
                      actionButton("class_deselect_all", "Deselect All")
               ),
-              column(6,
+              column(7,
                      h3("Select Subjects"),
                      uiOutput("subject_checkboxes"),
                      actionButton("subject_select_all", "Select All"),
@@ -114,7 +117,7 @@ body <- dashboardBody(
               column(1)
             ),
             fluidRow(
-              column(12, class ='container',
+              column(12, class ='center',
                      uiOutput("action_button_ui")
               )
             ),
@@ -127,16 +130,87 @@ body <- dashboardBody(
 
     tabItem(tabName = "programsturcture",
             h1("Program Structure"),
-            fluidRow( class = 'separate2',
-                      column(1),
-                      column(3,
-                             h3("Specify the Semesters"),
-                             uiOutput("semester_label_input")
-                      ),
-                      column(3,
-                             uiOutput("semester_input")
-                      ),
-                      column(1)
+            fluidRow(
+              class = 'separate3',
+              column(4,
+                     h3("Specify the Semesters"),
+              ),
+              column(1),
+              column(7,
+                     h3("The Structure"),
+              )
+            ),
+            fluidRow(
+              column(3, class= 'semester_label',
+                     uiOutput("semester_label_input")
+              ),
+              column(1, class = 'semester_input',
+                     uiOutput("semester_input")
+              ),
+              column(1, class ='container',
+                     div(class = 'centered-element', h1(uiOutput("action_right_button_ui")))
+              ),
+              column(7, class = 'structure',
+                     DTOutput("program_structure_table")
+              )
+            )
+    ),
+
+    tabItem(tabName = "visualization",
+            h1("Visualization"),
+            fluidRow(
+              class = 'separate3'
+            ),
+            fluidRow(
+              column(4, class = "center",
+                     h3("Number of the students in each classes"),
+                     plotOutput("bar_chart", height = "210px")
+              ),
+              column(4, class = "center",
+                     h3("Distribution of genders"),
+                     plotOutput("pie_chart", height = "210px")
+              ),
+              column(4, class = "center",
+                     h3("Churn of the students over the semesters"),
+                     plotOutput("line_chart", height = "210px"),
+              )
+            ),
+            fluidRow(
+              class = 'separate4'
+            ),
+            fluidRow(
+              column(1),
+              column(2, class = "right",
+                     h3('Select classes: ')
+              ),
+              column(3, class = "left",
+                     uiOutput("class_checkboxes_filter")
+              ),
+              column(2, class = "right2",
+                     h3('Select subject: ')
+              ),
+              column(3, class = "left",
+                     uiOutput("subject_checkboxes_filter")
+              ),
+              column(1)
+          ),
+          fluidRow(
+            column(4, class = "centerLeft",
+                   plotOutput("bar_chart_grades", height = "230px")
+            ),
+            column(4, class = "centerMiddle",
+                   plotOutput("bar_chart_exams", height = "230px")
+            ),
+            column(4, class = "centerRight",
+                   plotOutput("bar_chart_subjects", height = "230px")
+            )
+          ),
+    ),
+
+    tabItem(tabName = "metrics",
+            h1("Metrics"),
+            fluidRow(
+              class = 'separate3'
             )
     )
 
