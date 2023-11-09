@@ -142,6 +142,7 @@ p.italic {
 
 .upload {
   padding-top: 15px;
+  text-align: center;
 }
 
 .button {
@@ -159,17 +160,15 @@ p.italic {
 }
 
 #subject_checkboxes {
-  padding-left: 10px;
+  font-size: 13.5px;
   padding-bottom: 10px;
-  display: inline-block;
-  width: 100%;
+  padding-left: 15px;
+  padding-right: 15px;
 }
 
 #class_checkboxes {
-  padding-left: 10px;
   padding-bottom: 10px;
   font-size: 13px;
-
 }
 
 .btn#arrowbutton {
@@ -189,6 +188,11 @@ p.italic {
   border: none;
   height: 60px;
   padding: 0px;
+}
+
+.addPadding{
+  padding-left: 40px;
+  padding-right: 40px;
 }
 
 .center {
@@ -239,7 +243,7 @@ p.italic {
 #class_checkboxes_filter {
   padding-left: 15px;
   padding-top: 10px;
-  font-size: 15px;
+  font-size: 13px;
 }
 
 #subject_checkboxes_filter {
@@ -252,7 +256,6 @@ p.italic {
 }
 
 .form-group {
-  font-size: 12px;
   padding: 0px;
   margin: 0px;
 }

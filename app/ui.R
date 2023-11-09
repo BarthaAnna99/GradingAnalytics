@@ -84,7 +84,7 @@ body <- dashboardBody(
                      p("Upload Zip file: ")
               ),
               column(4, class = 'upload',
-                     fileInput('zipFile', label= NULL, multiple = FALSE, accept = c(".zip"), width = "400px")
+                     fileInput('zipFile', label= NULL, multiple = FALSE, accept = c(".zip"), width = "100%")
               ),
               column(2, class = 'button',
                      actionButton("upload", "Upload")
@@ -92,7 +92,7 @@ body <- dashboardBody(
               column(2)
             ),
             fluidRow(
-              column(12,
+              column(12, class= 'addPadding',
                      DTOutput("fileList")
               )
             )

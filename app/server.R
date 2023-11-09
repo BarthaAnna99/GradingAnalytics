@@ -6,6 +6,8 @@ server <- function(input, output, session) {
   selected_data <- reactiveVal(NULL)
   all_classes <- reactiveVal(NULL)
   all_subjects <- reactiveVal(NULL)
+  prep_merged_data <- reactiveVal(NULL)
+  prep_classes_data <- reactiveVal(NULL)
   merged_data <- reactiveVal(NULL)
   selected_classes_df <- data.frame(Classes = character(0))
   selected_subjects_df <- data.frame(Subjects = character(0))
@@ -14,7 +16,9 @@ server <- function(input, output, session) {
   selected_classes_filter_df <- reactiveVal(NULL)
   selected_subjects_filter_df <- reactiveVal(NULL)
 
-  ############ Uploading zip file #############
+  ########### Tabs #################
+  # Import Data #################
+  ## Uploading zip file ####
   observeEvent(input$upload, {
 
     req(input$zipFile)
@@ -44,6 +48,45 @@ server <- function(input, output, session) {
     # Store the list of uploaded files
     uploaded_files(file_list_df[ ,2:3])
 
+    data_frames <- lapply(file_list, function(file_path) {
+
+      if (!grepl("evfolyam", file_path, ignore.case = TRUE)) {
+
+        # Read the Excel file
+        df <- read_xlsx(normalizePath(file_path))
+        names(df)[1] <- "NeptunID"
+        names(df)[2] <- "Nem"
+        names(df)[3] <- "Jegy"
+        names(df)[4] <- "Tipus"
+        names(df)[5] <- "Eredmeny"
+
+        # Add a column for the file name
+        df <- df %>% mutate(Tantargy = gsub("\\.", "", sub("^(.*?)(_[0-9].*|\\.[^.]+)$", "\\1", tools::file_path_sans_ext(basename(file_path)))))
+        df <- df %>% mutate(Tantargy_long = gsub("\\.", "", tools::file_path_sans_ext(basename(file_path))))
+
+      }
+    })
+
+    prep_merged_data(bind_rows(data_frames))
+
+    data_frames <- lapply(file_list, function(file_path) {
+
+      if (grepl("evfolyam", file_path, ignore.case = TRUE)) {
+        # Read the Excel file
+        df <- read_xlsx(normalizePath(file_path))
+        names(df)[1] <- "NeptunID"
+
+        df <- df %>% select(NeptunID)
+
+        # Add a column for the file name
+        df <- df %>% mutate(Evfolyam = substring(tools::file_path_sans_ext(basename(file_path)),1,5))
+        df <- df %>% mutate(Evfolyam_long = gsub("\\.", "", tools::file_path_sans_ext(basename(file_path))))
+
+      }
+    })
+
+    prep_classes_data(bind_rows(data_frames))
+
   })
 
   output$fileList <- renderDT({
@@ -51,19 +94,31 @@ server <- function(input, output, session) {
   })
 
 
-  ############ Showing data in dialog #############
+  ## Showing data in dialog #############
   observeEvent(input$fileList_rows_selected, {
-    if (is.null(uploaded_files())) return()
+    if (is.null(prep_classes_data()) && is.null(prep_merged_data())) return()
 
     selected_row <- input$fileList_rows_selected
     if (length(selected_row) == 0) return()
 
     selected_folder <- uploaded_files()$Folder_Name[selected_row]
     selected_file <- uploaded_files()$File_Name[selected_row]
-    selected_item_df <- temp_dir_data()
-    selected_item <- selected_item_df[temp_dir_data()$Folder_Name == selected_folder & temp_dir_data()$File_Name == selected_file,]
-    if (file.exists(selected_item$Path) && tolower(tools::file_ext(selected_item$Path)) %in% c("xls", "xlsx")) {
-      data <- read_xlsx(selected_item$Path)
+    selected_file<- str_sub(selected_file, end = -6)
+
+    merged_data <- prep_merged_data()
+    classes_data <- prep_classes_data()
+
+
+    if (grepl("Evfolyam", selected_folder, ignore.case = TRUE)) {
+      data <- subset(classes_data, grepl(selected_file, classes_data$Evfolyam_long))
+      data <- data[,1]
+    }
+    else {
+      data <- subset(merged_data, grepl(selected_file, merged_data$Tantargy_long))
+      data <- data[,1:5]
+      }
+
+    if (nrow(data) > 0)  {
       selected_data(data)
       showModal(modalDialog(
         dataTableOutput("selectedData"),
@@ -83,7 +138,8 @@ server <- function(input, output, session) {
   })
 
 
-  ############ Data preparation #############
+  # Data preparation ################
+  ## Filter options #####
   # Create a reactive expression for checkbox options
   class_options <- reactive({
     if (!is.null(temp_dir_data())) {
@@ -111,7 +167,7 @@ server <- function(input, output, session) {
   # Deselect All button logic
   observeEvent(input$class_deselect_all, {
     classes <- all_classes()
-    updateCheckboxGroupInput("selected_classes", choices = classes, selected = NULL, inline= TRUE)
+    updateCheckboxGroupInput(session, "selected_classes", choices = classes, selected = NULL, inline= TRUE)
   })
 
   # Create a reactive expression for checkbox options
@@ -153,6 +209,7 @@ server <- function(input, output, session) {
 
   })
 
+  ## Save data #########
   observeEvent(input$arrowbutton, {
     # Save selected classes
     selected_classes <- input$selected_classes
@@ -169,46 +226,10 @@ server <- function(input, output, session) {
     }
 
     # Load all the data into a df
-    if (!is.null(temp_dir_data())) {
+    if (!is.null(prep_merged_data()) && !is.null(prep_classes_data())) {
 
-      file_list <- temp_dir_data()$Path
-
-      data_frames <- lapply(file_list, function(file_path) {
-
-        if (!grepl("evfolyam", file_path, ignore.case = TRUE)) {
-          # Read the Excel file
-          df <- read_xlsx(file_path)
-          names(df)[1] <- "NeptunID"
-          names(df)[2] <- "Nem"
-          names(df)[3] <- "Jegy"
-          names(df)[4] <- "Tipus"
-          names(df)[5] <- "Eredmeny"
-
-          # Add a column for the file name
-          df <- df %>% mutate(Tantargy = gsub("\\.", "", sub("^(.*?)(_[0-9].*|\\.[^.]+)$", "\\1", tools::file_path_sans_ext(basename(file_path)))))
-          df <- df %>% mutate(Tantargy_long = gsub("\\.", "", tools::file_path_sans_ext(basename(file_path))))
-
-        }
-      })
-
-      merged_data <- bind_rows(data_frames)
-
-      data_frames <- lapply(file_list, function(file_path) {
-
-        if (grepl("evfolyam", file_path, ignore.case = TRUE)) {
-          # Read the Excel file
-          df <- read_xlsx(file_path)
-          names(df)[1] <- "NeptunID"
-
-          df <- df %>% select(NeptunID)
-
-          # Add a column for the file name
-          df <- df %>% mutate(Evfolyam = substring(tools::file_path_sans_ext(basename(file_path)),1,5))
-
-        }
-      })
-
-      classes_data <- bind_rows(data_frames)
+      classes_data <- prep_classes_data()
+      merged_data <- prep_merged_data()
 
       # Filter data to selected values
       classes_data <- classes_data[classes_data$Evfolyam %in% selected_classes_df$Classes, ]
@@ -292,7 +313,8 @@ server <- function(input, output, session) {
 
   })
 
-  ################ Program Sructure #############
+  # Program Sructure #############
+  ## Set the semesters ##########
   # Create a dynamic UI for selectOption elements
   label_options <- reactive({
     if (!is.null(GA_data())) {
@@ -337,6 +359,7 @@ server <- function(input, output, session) {
     }
   })
 
+  ## Show the structure ###########
   observeEvent(input$arrowrightbutton, {
     subjects <- GA_data()
     subjects <- data.frame(Subjects = unique(subjects$Tantargy))
@@ -400,7 +423,7 @@ server <- function(input, output, session) {
     })
   })
 
-  ############### Vizualization #########
+  # Vizualization #########
   output$bar_chart <- renderPlot({
 
     if (!is.null(GA_final_data())) {
@@ -415,7 +438,7 @@ server <- function(input, output, session) {
       # Create the bar chart
       bar_chart <- ggplot(data, aes(x = factor(Evfolyam), y = Number_of_Students)) +
         geom_bar(stat = "identity", fill = "#1A213D") +
-        geom_text(aes(label = Number_of_Students, fontface = "bold"), position = position_stack(vjust = 0.5), size = 4, color = 'white') +
+        geom_text(aes(label = Number_of_Students, fontface = "bold"), position = position_stack(vjust = 0.9), size = 4, color = 'white') +
         labs(x = "Classes", y = "Number of Students") +
         theme_minimal() +
         theme(

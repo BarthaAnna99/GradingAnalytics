@@ -5,7 +5,7 @@ account: corvinus-gadinganalytics
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 10344193
-bundleId: 7904286
+bundleId: 7907396
 url: https://corvinus-gadinganalytics.shinyapps.io/GradingAnalytics/
 version: 1
 asMultiple: FALSE
