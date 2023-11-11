@@ -28,6 +28,7 @@ server <- function(input, output, session) {
 
     # Create a temporary directory to extract the contents
     temp_dir_path <- tempdir()
+    setwd(temp_dir_path)
 
     # Extract the zip file
     unzip(zip_file, exdir = temp_dir_path)
@@ -39,8 +40,8 @@ server <- function(input, output, session) {
 
     file_list_df <- data.frame(
                         Path = file_list,
-                        Folder_Name = fs::path(file_list) %>% dirname() %>% basename(),#sub(".*/", "", dirname(file_list)),
-                        File_Name = fs::path(file_list) %>% basename()#basename(file_list)
+                        Folder_Name = fs::path(file_list) %>% dirname() %>% basename(),
+                        File_Name = fs::path(file_list) %>% basename()
                     )
 
     temp_dir_data(file_list_df)
@@ -48,44 +49,43 @@ server <- function(input, output, session) {
     # Store the list of uploaded files
     uploaded_files(file_list_df[ ,2:3])
 
-    data_frames <- lapply(file_list, function(file_path) {
 
+
+    df_end <- data.frame()
+    df_class_end <- data.frame()
+    # Process the extracted files
+    for (file_path in file_list) {
       if (!grepl("evfolyam", file_path, ignore.case = TRUE)) {
-
-        # Read the Excel file
-        df <- read_xlsx(normalizePath(file_path))
-        names(df)[1] <- "NeptunID"
-        names(df)[2] <- "Nem"
-        names(df)[3] <- "Jegy"
-        names(df)[4] <- "Tipus"
-        names(df)[5] <- "Eredmeny"
-
-        # Add a column for the file name
-        df <- df %>% mutate(Tantargy = gsub("\\.", "", sub("^(.*?)(_[0-9].*|\\.[^.]+)$", "\\1", tools::file_path_sans_ext(basename(file_path)))))
-        df <- df %>% mutate(Tantargy_long = gsub("\\.", "", tools::file_path_sans_ext(basename(file_path))))
-
+        if (tolower(substr(file_path, nchar(file_path) - 4, nchar(file_path))) == ".xlsx") {
+          df <- read_xlsx(file_path, sheet = 1)
+          # Add a column for the file name
+          df <- df %>% mutate(Tantargy = gsub("\\.", "", sub("^(.*?)(_[0-9].*|\\.[^.]+)$", "\\1", tools::file_path_sans_ext(basename(file_path)))))
+          df <- df %>% mutate(Tantargy_long = gsub("\\.", "", tools::file_path_sans_ext(basename(file_path))))
+          df_end <- rbind(df_end, df)
+        }
       }
-    })
-
-    prep_merged_data(bind_rows(data_frames))
-
-    data_frames <- lapply(file_list, function(file_path) {
-
-      if (grepl("evfolyam", file_path, ignore.case = TRUE)) {
-        # Read the Excel file
-        df <- read_xlsx(normalizePath(file_path))
-        names(df)[1] <- "NeptunID"
-
-        df <- df %>% select(NeptunID)
-
-        # Add a column for the file name
-        df <- df %>% mutate(Evfolyam = substring(tools::file_path_sans_ext(basename(file_path)),1,5))
-        df <- df %>% mutate(Evfolyam_long = gsub("\\.", "", tools::file_path_sans_ext(basename(file_path))))
-
+      else if (grepl("evfolyam", file_path, ignore.case = TRUE)) {
+        if (tolower(substr(file_path, nchar(file_path) - 4, nchar(file_path))) == ".xlsx") {
+          df_class <- read_xlsx(file_path, sheet = 1)
+          df_class <- df_class[,1]
+          # Add a column for the file name
+          df_class <- df_class %>% mutate(Evfolyam = substring(tools::file_path_sans_ext(basename(file_path)),1,5))
+          df_class <- df_class %>% mutate(Evfolyam_long = gsub("\\.", "", tools::file_path_sans_ext(basename(file_path))))
+          names(df_class)[1] <- "NeptunID"
+          df_class_end <- rbind(df_class_end, df_class)
+        }
       }
-    })
 
-    prep_classes_data(bind_rows(data_frames))
+    }
+
+    if (nrow(df_end) > 0) {
+      names(df_end)[1:5] <- c("NeptunID","Nem","Jegy","Tipus","Eredmeny")
+      prep_merged_data(df_end)
+      }
+    if (nrow(df_class_end) > 0) {
+      df_class_end <- df_class_end %>% select(NeptunID, Evfolyam, Evfolyam_long)
+      prep_classes_data(df_class_end)
+      }
 
   })
 

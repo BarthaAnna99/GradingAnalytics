@@ -264,7 +264,6 @@ p.italic {
   text-align: left;
   line-height: 2.45;
   padding-top: 0px;
-  padding-left: 60px;
 }
 
 .semester_input {
@@ -312,6 +311,3 @@ p.italic {
   padding: 0px;
 }
 
-.structure {
-  padding-right: 60px;
-}

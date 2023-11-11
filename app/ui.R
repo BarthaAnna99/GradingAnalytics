@@ -141,6 +141,7 @@ body <- dashboardBody(
               )
             ),
             fluidRow(
+              column(1),
               column(3, class= 'semester_label',
                      uiOutput("semester_label_input")
               ),
@@ -150,9 +151,10 @@ body <- dashboardBody(
               column(1, class ='container',
                      div(class = 'centered-element', h1(uiOutput("action_right_button_ui")))
               ),
-              column(7, class = 'structure',
+              column(5,
                      DTOutput("program_structure_table")
-              )
+              ),
+              column(1)
             )
     ),
 
