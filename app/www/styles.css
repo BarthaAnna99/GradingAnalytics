@@ -311,3 +311,33 @@ p.italic {
   padding: 0px;
 }
 
+.space {
+  white-space: pre-wrap;
+  padding: 0px 50px 0px 50px ;
+  margin: 0px;
+}
+
+#metrics_analysis {
+  padding-left: 30px;
+  padding-right: 30px;
+}
+
+.btn#metricsbutton {
+  font-size: 16px;
+  color: #BF9053;
+  background-color: white;
+  font-style: bold;
+  border: 1px solid #BF9053;
+  font-family: 'General Sans', sans-serif;
+}
+.btn#metricsbutton:hover,
+.btn#metricsbutton.active
+{
+  font-size: 16px;
+  color: white;
+  background-color: #BF9053;
+  font-style: bold;
+  border: 1px solid #BF9053;
+  font-family: 'General Sans', sans-serif;
+}
+

@@ -13,6 +13,7 @@ server <- function(input, output, session) {
   selected_subjects_df <- data.frame(Subjects = character(0))
   GA_data <- reactiveVal(NULL)
   GA_final_data <- reactiveVal(NULL)
+  GA_metrics_data <- reactiveVal(NULL)
   selected_classes_filter_df <- reactiveVal(NULL)
   selected_subjects_filter_df <- reactiveVal(NULL)
 
@@ -55,9 +56,12 @@ server <- function(input, output, session) {
     df_class_end <- data.frame()
     # Process the extracted files
     for (file_path in file_list) {
+
+      setwd(fs::path(dirname(file_path)))
+
       if (!grepl("evfolyam", file_path, ignore.case = TRUE)) {
         if (tolower(substr(file_path, nchar(file_path) - 4, nchar(file_path))) == ".xlsx") {
-          df <- read_xlsx(file_path, sheet = 1)
+          df <- read_xlsx(basename(file_path), sheet = 1)
           # Add a column for the file name
           df <- df %>% mutate(Tantargy = gsub("\\.", "", sub("^(.*?)(_[0-9].*|\\.[^.]+)$", "\\1", tools::file_path_sans_ext(basename(file_path)))))
           df <- df %>% mutate(Tantargy_long = gsub("\\.", "", tools::file_path_sans_ext(basename(file_path))))
@@ -66,7 +70,7 @@ server <- function(input, output, session) {
       }
       else if (grepl("evfolyam", file_path, ignore.case = TRUE)) {
         if (tolower(substr(file_path, nchar(file_path) - 4, nchar(file_path))) == ".xlsx") {
-          df_class <- read_xlsx(file_path, sheet = 1)
+          df_class <- read_xlsx(basename(file_path), sheet = 1)
           df_class <- df_class[,1]
           # Add a column for the file name
           df_class <- df_class %>% mutate(Evfolyam = substring(tools::file_path_sans_ext(basename(file_path)),1,5))
@@ -424,6 +428,7 @@ server <- function(input, output, session) {
   })
 
   # Vizualization #########
+  ## Barchart ##############
   output$bar_chart <- renderPlot({
 
     if (!is.null(GA_final_data())) {
@@ -453,6 +458,7 @@ server <- function(input, output, session) {
 
   })
 
+  ## Line chart ###############
   output$line_chart <- renderPlot({
 
     if (!is.null(GA_final_data())) {
@@ -498,6 +504,7 @@ server <- function(input, output, session) {
 
   })
 
+  ## Pie chart #############
   output$pie_chart <- renderPlot({
 
     if (!is.null(GA_final_data())) {
@@ -526,6 +533,7 @@ server <- function(input, output, session) {
 
   })
 
+  ## FIlter options ###########
   # Create a reactive expression for checkbox options
   class_options_filter <- reactive({
     if (!is.null(all_classes())) {
@@ -568,6 +576,7 @@ server <- function(input, output, session) {
     selected_subjects_filter_df(input$selected_subjects_filter)
   })
 
+  ## Subject bar charts ###############
   output$bar_chart_grades <- renderPlot({
     if (!is.null(GA_final_data()) && !is.null(selected_classes_filter_df()) && !is.null(selected_subjects_filter_df()) ) {
       GA_data <- GA_final_data()
@@ -659,6 +668,112 @@ server <- function(input, output, session) {
 
       print(bar_chart_subjects)
     }
+  })
+
+  # Metrics ###############
+  ## Porcess button
+
+  # Render arrow button
+  output$metrics_button_ui <- renderUI({
+    if (!is.null(GA_final_data())) {
+      actionButton("metricsbutton", "Calculate metrics for Subjects")
+    }
+  })
+
+  # Calculate metrics
+  observeEvent(input$metricsbutton, {
+    GA_final_data <- GA_final_data()
+
+    GA_final_data <- GA_final_data %>%
+      mutate(
+        Kitevo_Targyfelv = case_when(
+          Jegy == 5 ~ 0.7,
+          Jegy == 4 ~ 0.6,
+          Jegy == 3 ~ 0.5,
+          Jegy == 2 ~ 0.5,
+          Jegy == 1 ~ 0.6,
+          Jegy == 0 ~ 0.7,
+          TRUE ~ 0
+        ),
+        Prep_Kitevo_Vizsgafelv = case_when(
+          Jegy == 5 ~ 0.5,
+          Jegy == 4 ~ 0.4,
+          Jegy == 3 ~ 0.3,
+          Jegy == 2 ~ 0.3,
+          Jegy == 1 ~ 0.4,
+          Jegy == 0 ~ 0.5,
+          TRUE ~ 0
+        ),
+        Kitevo_Vizsgafelv = case_when(
+          Tipus == 'Gyakorlati jegy' ~ Prep_Kitevo_Vizsgafelv * 1.3,
+          TRUE ~ Prep_Kitevo_Vizsgafelv
+        ),
+        Metrics = round(Jegy + 1 - (1.5 * Targyfelv^Kitevo_Targyfelv + 0.5 * Vizsgafelv^Kitevo_Vizsgafelv) / 2, 4)
+      ) %>%
+      select(Evfolyam, NeptunID, Nem, Tantargy, Tipus, Jegy, Vizsgafelv, Targyfelv, Metrics)
+
+    GA_metrics_data(GA_final_data)
+
+    Metrics_description_data <- GA_final_data %>%
+      group_by(Tantargy) %>%
+      summarize(Minimum = round(min(Metrics),2),
+                Maximum = round(max(Metrics), 2),
+                Median = round(median(Metrics),2),
+                Mean = round(mean(Metrics), 2),
+                Deviation = round(sd(Metrics), 2)
+                ) %>%
+      select(Tantargy, Minimum, Maximum, Median, Mean, Deviation)
+
+    output$metrics_analysis <- renderDT({
+      if (nrow(Metrics_description_data) > 0) {
+        datatable(
+          Metrics_description_data,
+          options = list(paging = FALSE, searching = FALSE, ordering = FALSE, info = FALSE,
+                         initComplete = JS(
+                           "function(settings, json) {",
+                           "$(this.api().table().header()).css({'text-align': 'center', 'color': '#BF9053'});",
+                           "}")),
+          selection = 'none',
+          rownames = FALSE,
+          class = "cell-border"
+        )  %>%
+          formatStyle(
+            names(Metrics_description_data),
+            textAlign = "center"
+          ) %>%
+          formatStyle(
+            "Minimum", "Maximum", "Median", "Mean", "Deviation",
+            target = "cell",
+            lineHeight = "20px",
+            textAlign = "center"
+          ) %>%
+          formatStyle(
+            "Tantargy",
+            target = "cell",
+            lineHeight = "20px",
+            textAlign = "left"
+          )
+      }
+    })
+
+  })
+
+  # Dataset ##########
+
+  output$GA_dataset <- renderDT({
+    if(!is.null(GA_metrics_data())) {
+      datatable(GA_metrics_data(),
+                options = list(pageLength = 12,
+                               dom = 'Bfrtip',
+                               buttons = list(
+                                 list(extend = 'csv', text = 'Export')
+                               )
+                               ),
+                selection = 'none',
+                extensions = 'Buttons'
+      )
+    }
+
   })
 
 }

@@ -25,7 +25,8 @@ sidebar <- dashboardSidebar(
     menuItem("Data Preparation", tabName = "preparedataset"),
     menuItem("Program Structure", tabName = "programsturcture"),
     menuItem("Visualization", tabName = "visualization"),
-    menuItem("Metrics", tabName = "metrics")
+    menuItem("Metrics", tabName = "metrics"),
+    menuItem("Dataset", tabName = "dataset")
   )
 )
 
@@ -213,6 +214,36 @@ body <- dashboardBody(
             h1("Metrics"),
             fluidRow(
               class = 'separate3'
+            ),
+            fluidRow(
+              column(5, class = "center",
+                     h2("Formula for calculating metrics"),
+                     img(src = "formula.png", width = "290px"), br(),
+                     p("x: Value of the grade            y: Number of subject admissions", class= "space"),
+                     p("z: Number of exams", class= "space"),
+                     br(),
+                     br(),
+                     h2("Value of dispensers"),
+                     img(src = "dispenser.png", width = "500px"),
+                     br(),
+                     br(),
+                     uiOutput("metrics_button_ui")
+              ),
+              column(7, class = "center",
+                     DTOutput("metrics_analysis")
+              )
+            )
+    ),
+
+
+    tabItem(tabName = "dataset",
+            h1("Dataset"),
+            fluidRow(
+              class = 'separate3'
+            ),
+            fluidRow(
+              column(12,
+                     DTOutput("GA_dataset"))
             )
     )
 
