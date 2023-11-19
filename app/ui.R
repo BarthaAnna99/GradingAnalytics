@@ -8,14 +8,20 @@ library("DT")
 library("stringr")
 library("fs")
 library("ggplot2")
+library("MASS")
+library("leaps")
+library("L1pack")
+library("tibble")
+library("tidyr")
+library("DescTools")
 
-### HEADER ###
+# HEADER ######
 header <- dashboardHeader(
   title = "Grading Analytics",
   dropdownMenuOutput("messageMenu")
 )
 
-### SIDEBAR ###
+# SIDEBAR #####
 sidebar <- dashboardSidebar(
   p(img(src = "logo.png", height = 65, width = 90)),
   sidebarMenu(
@@ -26,15 +32,17 @@ sidebar <- dashboardSidebar(
     menuItem("Program Structure", tabName = "programsturcture"),
     menuItem("Visualization", tabName = "visualization"),
     menuItem("Metrics", tabName = "metrics"),
-    menuItem("Dataset", tabName = "dataset")
+    menuItem("Dataset", tabName = "dataset"),
+    menuItem("Modeling", tabName = "modeling")
   )
 )
 
-### BODY ###
+# BODY #####
 body <- dashboardBody(
   includeCSS("www/styles.css"),
 
   tabItems(
+    ## introduction ##########
     tabItem(tabName = "introduction",
             h1("Introduction to Grading Analytics"),
             p(class = "italic", "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."),
@@ -77,6 +85,7 @@ body <- dashboardBody(
     #
     # ),
 
+    ## importdata ##############
     tabItem(tabName = "importdata",
             h1("Import Data"),
             fluidRow( class = 'separate',
@@ -99,6 +108,7 @@ body <- dashboardBody(
             )
     ),
 
+    ## preparedataset ############
     tabItem(tabName = "preparedataset",
             h1("Data Preparation"),
             fluidRow( class = 'separate2',
@@ -129,6 +139,7 @@ body <- dashboardBody(
             )
     ),
 
+    ## programsturcture #############
     tabItem(tabName = "programsturcture",
             h1("Program Structure"),
             fluidRow(
@@ -159,6 +170,7 @@ body <- dashboardBody(
             )
     ),
 
+    ## visualization #############
     tabItem(tabName = "visualization",
             h1("Visualization"),
             fluidRow(
@@ -210,32 +222,33 @@ body <- dashboardBody(
           ),
     ),
 
+    ## metrics ###########
     tabItem(tabName = "metrics",
             h1("Metrics"),
             fluidRow(
               class = 'separate3'
             ),
             fluidRow(
-              column(5, class = "center",
+              column(6, class = "center",
                      h2("Formula for calculating metrics"),
                      img(src = "formula.png", width = "290px"), br(),
                      p("x: Value of the grade            y: Number of subject admissions", class= "space"),
                      p("z: Number of exams", class= "space"),
                      br(),
                      br(),
-                     h2("Value of dispensers"),
+                     h2("Value of indexes"),
                      img(src = "dispenser.png", width = "500px"),
                      br(),
                      br(),
                      uiOutput("metrics_button_ui")
               ),
-              column(7, class = "center",
+              column(6, class = "center",
                      DTOutput("metrics_analysis")
               )
             )
     ),
 
-
+    ## dataset ###########
     tabItem(tabName = "dataset",
             h1("Dataset"),
             fluidRow(
@@ -245,9 +258,26 @@ body <- dashboardBody(
               column(12,
                      DTOutput("GA_dataset"))
             )
+    ),
+
+    ## modeling ###########
+    tabItem(tabName = "modeling",
+            h1("Modeling"),
+            fluidRow(class = 'separate',
+              column(12,
+                     p("LAD regression with backward selection method", class = "LAD_title"),
+                     uiOutput("modelingbutton_ui")
+
+              )
+            ),
+            fluidRow(
+              column(12,
+                     DTOutput("LAD_dataset"))
+            )
     )
 
-  )
+)
+
 )
 
 dashboardPage(

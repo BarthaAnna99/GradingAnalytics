@@ -341,3 +341,47 @@ p.italic {
   font-family: 'General Sans', sans-serif;
 }
 
+#GA_dataset {
+  font-size: 13px;
+}
+
+.btn#modelingbutton {
+  font-size: 16px;
+  font-weight: bold;
+  color: #BF9053;
+  border: 0px;
+  background-color: white;
+  font-style: bold;
+  font-family: 'General Sans', sans-serif;
+  padding: 2px 5px 2px 5px;
+  margin-bottom: 10px;
+}
+.btn#modelingbutton:hover,
+.btn#modelingbutton.active
+{
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+  background-color: #BF9053;
+  border: 0px;
+  font-style: bold;
+  font-family: 'General Sans', sans-serif;
+  padding: 2px 5px 2px 5px;
+  margin-bottom: 10px;
+}
+
+.LAD_title {
+  font-size: 18px;
+  padding-top: 10px;
+}
+
+#LAD_dataset {
+  margin-top: 15px;
+  font-size: 13px;
+}
+
+#LAD_dataset table tr td {
+  word-wrap: break-word;
+  max-width: 76px
+}
+

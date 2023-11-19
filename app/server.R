@@ -73,7 +73,7 @@ server <- function(input, output, session) {
           df_class <- read_xlsx(basename(file_path), sheet = 1)
           df_class <- df_class[,1]
           # Add a column for the file name
-          df_class <- df_class %>% mutate(Evfolyam = substring(tools::file_path_sans_ext(basename(file_path)),1,5))
+          df_class <- df_class %>% mutate(Evfolyam = gsub("-", "_", substring(tools::file_path_sans_ext(basename(file_path)),1,5)))
           df_class <- df_class %>% mutate(Evfolyam_long = gsub("\\.", "", tools::file_path_sans_ext(basename(file_path))))
           names(df_class)[1] <- "NeptunID"
           df_class_end <- rbind(df_class_end, df_class)
@@ -87,7 +87,6 @@ server <- function(input, output, session) {
       prep_merged_data(df_end)
       }
     if (nrow(df_class_end) > 0) {
-      df_class_end <- df_class_end %>% select(NeptunID, Evfolyam, Evfolyam_long)
       prep_classes_data(df_class_end)
       }
 
@@ -126,7 +125,7 @@ server <- function(input, output, session) {
       selected_data(data)
       showModal(modalDialog(
         dataTableOutput("selectedData"),
-        title = paste("Selected File Data - ", selected_file),
+        title = paste("Selected File - ", selected_file),
         size = "l",
         class = "my-modal-dialog",
         footer = modalButton("Close")
@@ -149,7 +148,7 @@ server <- function(input, output, session) {
     if (!is.null(temp_dir_data())) {
       selected_item_df <- temp_dir_data()
       classes_data <- subset(selected_item_df, grepl("evfolyam", Folder_Name, ignore.case = TRUE))
-      classes <- unique(substring(classes_data$File_Name,1,5))
+      classes <- unique(gsub("-", "_", substring(classes_data$File_Name,1,5)))
       all_classes(classes)
       if (!is.null(classes)) {
         checkboxGroupInput("selected_classes", label = NULL, choices = classes, selected = classes, inline= TRUE)
@@ -255,7 +254,7 @@ server <- function(input, output, session) {
         group_by(Tantargy, Tipus) %>%
         distinct(Tantargy, Tipus)
 
-      result <- result %>% select(NeptunID, Nem, Jegy, Eredmeny, Tantargy, Evfolyam, Tantargy_long)
+      result <- result %>% dplyr::select(NeptunID, Nem, Jegy, Eredmeny, Tantargy, Evfolyam, Tantargy_long)
 
       result <- inner_join(result, subjects, by = "Tantargy")
 
@@ -293,18 +292,18 @@ server <- function(input, output, session) {
 
       GA_data <- GA_data %>%
         filter(RowNumber == 1) %>%
-        select(Evfolyam, NeptunID, Nem, Tantargy, Tipus, Jegy, Vizsgafelv, Targyfelv, Tantargy_long)
+        dplyr::select(Evfolyam, NeptunID, Nem, Tantargy, Tipus, Jegy, Vizsgafelv, Targyfelv, Tantargy_long)
 
       # Remove duplicates from GA_data
       GA_data_prep <- GA_data %>%
         group_by(NeptunID, Tantargy) %>%
         summarize(Tantargy_long = max(Tantargy_long)) %>%
-        select(NeptunID, Tantargy, Tantargy_long)
+        dplyr::select(NeptunID, Tantargy, Tantargy_long)
 
       GA_data <- inner_join(GA_data, GA_data_prep, by = c("NeptunID", "Tantargy", "Tantargy_long"))
 
       GA_data <- GA_data %>%
-        select(Evfolyam, NeptunID, Nem, Tantargy, Tipus, Jegy, Vizsgafelv, Targyfelv)
+        dplyr::select(Evfolyam, NeptunID, Nem, Tantargy, Tipus, Jegy, Vizsgafelv, Targyfelv)
 
       GA_data$Nem <- gsub("Nõ", "Nő", GA_data$Nem)
 
@@ -485,7 +484,7 @@ server <- function(input, output, session) {
       # Calculate Percentage
       data <- Prep_data %>%
         mutate(Percentage = 1 - Real_student_num / Expected_student_num) %>%
-        select(Semester, Percentage)
+        dplyr::select(Semester, Percentage)
 
       line_chart <- ggplot(data, aes(x = Semester, y = Percentage, group = 1)) +
         geom_line(color = "#1A213D") +
@@ -533,7 +532,7 @@ server <- function(input, output, session) {
 
   })
 
-  ## FIlter options ###########
+  ## Filter options ###########
   # Create a reactive expression for checkbox options
   class_options_filter <- reactive({
     if (!is.null(all_classes())) {
@@ -671,16 +670,16 @@ server <- function(input, output, session) {
   })
 
   # Metrics ###############
-  ## Porcess button
+  ## Porcess button ###########
 
-  # Render arrow button
+  # Render button
   output$metrics_button_ui <- renderUI({
     if (!is.null(GA_final_data())) {
-      actionButton("metricsbutton", "Calculate metrics for Subjects")
+      actionButton("metricsbutton", "Calculate the metrics")
     }
   })
 
-  # Calculate metrics
+  ## Calculate metrics ###########
   observeEvent(input$metricsbutton, {
     GA_final_data <- GA_final_data()
 
@@ -710,7 +709,8 @@ server <- function(input, output, session) {
         ),
         Metrics = round(Jegy + 1 - (1.5 * Targyfelv^Kitevo_Targyfelv + 0.5 * Vizsgafelv^Kitevo_Vizsgafelv) / 2, 4)
       ) %>%
-      select(Evfolyam, NeptunID, Nem, Tantargy, Tipus, Jegy, Vizsgafelv, Targyfelv, Metrics)
+      ungroup() %>%
+      dplyr::select(Evfolyam, Semester, NeptunID, Nem, Tantargy, Tipus, Jegy, Vizsgafelv, Targyfelv, Metrics)
 
     GA_metrics_data(GA_final_data)
 
@@ -719,10 +719,12 @@ server <- function(input, output, session) {
       summarize(Minimum = round(min(Metrics),2),
                 Maximum = round(max(Metrics), 2),
                 Median = round(median(Metrics),2),
-                Mean = round(mean(Metrics), 2),
-                Deviation = round(sd(Metrics), 2)
+                Mode = round(Mode(Metrics), 2)
+                #Mean = round(mean(Metrics), 2),
+                #Deviation = round(sd(Metrics), 2)
                 ) %>%
-      select(Tantargy, Minimum, Maximum, Median, Mean, Deviation)
+      dplyr::select(Tantargy, Minimum, Maximum, Median, Mode)
+      #dplyr::select(Tantargy, Minimum, Maximum, Median, Mean, Deviation)
 
     output$metrics_analysis <- renderDT({
       if (nrow(Metrics_description_data) > 0) {
@@ -742,7 +744,8 @@ server <- function(input, output, session) {
             textAlign = "center"
           ) %>%
           formatStyle(
-            "Minimum", "Maximum", "Median", "Mean", "Deviation",
+            "Minimum", "Maximum", "Median", "Mode",
+            #"Minimum", "Maximum", "Median", "Mean", "Deviation",
             target = "cell",
             lineHeight = "20px",
             textAlign = "center"
@@ -763,17 +766,194 @@ server <- function(input, output, session) {
   output$GA_dataset <- renderDT({
     if(!is.null(GA_metrics_data())) {
       datatable(GA_metrics_data(),
-                options = list(pageLength = 12,
-                               dom = 'Bfrtip',
-                               buttons = list(
-                                 list(extend = 'csv', text = 'Export')
-                               )
-                               ),
+                options = list(pageLength = 10),
                 selection = 'none',
                 extensions = 'Buttons'
       )
     }
 
   })
+
+  # Modeling ##############
+
+  # Render button
+  output$modelingbutton_ui <- renderUI({
+    if (!is.null(GA_metrics_data())) {
+      actionButton("modelingbutton", "Calculate")
+    }
+  })
+
+
+  ## Calculate betas ###########
+  observeEvent(input$modelingbutton, {
+    GA_metrics_data <- GA_metrics_data()
+
+    AllEvfolyam <- c(unique(GA_metrics_data$Evfolyam))
+    AllEvfolyam[1] <- ""
+
+    GA_metrics_data <- GA_metrics_data %>%
+      mutate(Nem = case_when(Nem == "Nő" ~ 0,
+                             TRUE ~ 1)) %>%
+      mutate(Evfolyam = factor(Evfolyam, labels = AllEvfolyam)) %>%
+      mutate(Semester = as.numeric(Semester))
+
+    GA_metrics_data <- GA_metrics_data %>%
+      pivot_wider(names_from = Evfolyam,
+                  values_from = Evfolyam,
+                  values_fill = 0,
+                  names_prefix = "Evfolyam_",
+                  values_fn = function(x) as.integer(!is.na(x)))%>%
+      dplyr::select(-Evfolyam_)
+
+    Subject_semester <- GA_metrics_data %>%
+      dplyr::select(Semester, Tantargy) %>%
+      distinct() %>%
+      arrange(Semester, Tantargy)
+
+    AllTantargy <- c('X.Intercept.', 'Nem', paste("Evfolyam_", AllEvfolyam[-1]), Subject_semester$Tantargy)
+
+    # Create an empty data frame with column names
+    LAD_result <- data.frame(matrix(nrow = 0, ncol = length(AllTantargy) + length(AllEvfolyam[-1]) -2))
+    colnames(LAD_result) <- AllTantargy
+    column_names_row <- as.data.frame(t(colnames(LAD_result)))
+    column_names_row[1,1] <- 'Beta'
+    colnames(column_names_row) <- AllTantargy
+
+    LAD_result <- rbind(LAD_result, column_names_row)
+    rownames(LAD_result)[1] <- " "
+
+    Subject_semester <- Subject_semester %>%
+      filter(Semester > 1)
+
+    for (i in 1:nrow(Subject_semester)) {
+      outcome <- as.character(Subject_semester[i, 2])
+      semester_filter <- as.numeric(Subject_semester[i, 1])
+
+      GA_metrics_data_n <- GA_metrics_data %>%
+        filter(Semester < semester_filter | Tantargy %in% outcome) %>%
+        dplyr::select(NeptunID, Nem, starts_with("Evfolyam"), Tantargy, Metrics)
+
+      # Unpivot the DataFrame
+      unpivoted_GA_metrics_data <- GA_metrics_data_n %>%
+        pivot_wider(
+          id_cols = c(NeptunID, Nem, starts_with("Evfolyam")),
+          names_from = Tantargy,
+          values_from = Metrics
+        ) %>%
+        dplyr::select(-NeptunID)
+
+      unpivoted_GA_metrics_data <- unpivoted_GA_metrics_data[complete.cases(unpivoted_GA_metrics_data), ]
+
+      feltetel <- TRUE
+      szamlalo <- 1
+
+      while(feltetel) {
+        lad_regression <- lad(paste(outcome ,"~.", sep=""), data = unpivoted_GA_metrics_data)
+        lad_sum <- summary(lad_regression)
+        aicA <- AIC(lad_regression)
+        cat(paste("\n\n", "Step:", szamlalo, "\n", sep=" "))
+        print(lad_sum)
+        cat(paste("AIC: ", aicA,"\n", sep=" "))
+
+        lad_coeff <- data.frame(lad_sum[["coefficients"]])
+        lad_coeff_m <- lad_coeff[-1,]
+
+        szelektalt <- gsub("`", "", row.names(lad_coeff_m[lad_coeff_m$p.value == max(lad_coeff_m$p.value), ]))
+        cat(paste("Szelektált változó: ", szelektalt, "\n", sep=" "))
+
+        adatok <- unpivoted_GA_metrics_data[, !names(unpivoted_GA_metrics_data) %in% szelektalt, drop = FALSE]
+        lad_regression2 <- lad(paste(outcome ,"~.", sep=""), data = adatok)
+        lad_sum2 <- summary(lad_regression2)
+        aicB <- AIC(lad_regression2)
+
+        if (aicA >= aicB || max(lad_coeff_m$p.value) > 0.15) {
+          unpivoted_GA_metrics_data <- adatok
+          szamlalo <- szamlalo + 1
+        }
+        else {
+          feltetel <- FALSE
+          cat(paste("AIC szelektálás után: ", aicB,"\n", sep=" "))
+          lad_coeff <- lad_coeff %>%
+            mutate(P_starts = case_when(
+              p.value <= 0.0001 ~ "****",
+              p.value <= 0.001 ~ "***",
+              p.value <= 0.01 ~ "**",
+              p.value <= 0.05 ~ "*",
+              TRUE ~ ""
+            )) %>%
+            mutate(Estimate = paste(round(Estimate, 3), P_starts, sep = "", collapse=NULL))
+
+          lad_coeff <- data.frame(lad_coeff$Estimate, row.names = row.names(lad_coeff))
+          lad_coeff <- data.frame(t(lad_coeff))
+          rownames(lad_coeff) <- outcome
+
+          # Get the column names from LAD_result
+          result_columns <- colnames(LAD_result)
+
+          # Create a new data frame with columns from LAD_result
+          new_lad_coeff <- data.frame(matrix(NA, nrow = nrow(lad_coeff), ncol = length(result_columns)))
+          colnames(new_lad_coeff) <- result_columns
+
+          # Assign values from lad_coeff to the matching columns
+          new_lad_coeff[, intersect(colnames(new_lad_coeff), colnames(lad_coeff))] <- lad_coeff[, intersect(colnames(new_lad_coeff), colnames(lad_coeff))]
+
+          # Bind the modified lad_coeff to LAD_result
+          LAD_result <- rbind(LAD_result, new_lad_coeff)
+
+          rownames(LAD_result)[i+1] <- outcome
+
+          }
+      }
+
+    }
+
+    ## Show the results ############
+
+    LAD_result <- LAD_result %>%
+      rownames_to_column(var = "RowNames")
+    LAD_result <- LAD_result %>%
+      mutate_all(~substr(., 1, 20)) %>%
+      mutate_all(~str_replace_all(., "_", "_ "))
+
+    output$LAD_dataset <- renderDT({
+      if(nrow(LAD_result) > 0) {
+        datatable(
+          LAD_result,
+          extensions = "FixedColumns",
+          options = list(
+            paging = FALSE,
+            searching = FALSE,
+            ordering = FALSE,
+            info = FALSE,
+            scrollX = TRUE,
+            fixedColumns = list(leftColumns = 1)
+          ),
+          selection = 'none',
+          rownames = FALSE,
+          class = "cell-border",
+          colnames = rep("", ncol(LAD_result))
+        ) %>%
+          formatStyle(
+            columns = 1,
+            valueColumns = 1,
+            target = "cell",
+            color = "#BF9053",
+            fontWeight = "bold"
+          )%>%
+          formatStyle(
+            columns = 1,
+            target = "row",
+            color = styleEqual(c(" "), c('#BF9053')),
+            fontWeight = styleEqual(c(" "), c('bold'))
+          )
+      }
+
+    })
+
+
+
+  })
+
+
 
 }
