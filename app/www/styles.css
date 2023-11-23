@@ -46,8 +46,9 @@
 h1 {
   color: #BF9053;
   text-align: center;
-  margin-top: 7px;
-  margin-bottom: 20px;
+  margin-top: 0px;
+  padding-top: 0px;
+  margin-bottom: 19px;
   font-weight: bold;
 }
 
@@ -59,7 +60,14 @@ h2 {
 h3 {
   color: #BF9053;
   font-size: 20px;
-  padding-bottom: 10px;
+  margin-bottom: 7px;
+  margin-top: 7px;
+}
+
+.my-icon {
+  font-size: 26px;
+  padding-top: 5px;
+  margin-right: 5px;
 }
 
 p.italic {
@@ -82,7 +90,7 @@ p.italic {
 }
 
 .describe2 {
-  padding-top: 20px;
+  padding-top: 30px;
   padding-left: 200px;
   padding-right: 60px;
   text-align: center;
@@ -103,7 +111,26 @@ p.italic {
 }
 
 .separate2 {
+  font-family: 'General Sans', sans-serif;
   border-top: solid #1A213D;
+  border-bottom: solid #1A213D;
+  padding-bottom: 17px;
+  text-align: center;
+}
+
+.separate3 {
+  font-family: 'General Sans', sans-serif;
+  border-top: solid #1A213D;
+  padding-bottom: 10px;
+  text-align: center;
+}
+
+.separate4 {
+  font-family: 'General Sans', sans-serif;
+  border-top: solid #1A213D;
+  padding-bottom: 10px;
+  margin-top: 15px;
+  text-align: center;
 }
 
 .title {
@@ -115,15 +142,12 @@ p.italic {
 
 .upload {
   padding-top: 15px;
+  text-align: center;
 }
 
 .button {
   padding-top: 15px;
   text-align: left;
-}
-
-.tbl {
-  padding-top: 10px;
 }
 
 .progress-bar {
@@ -135,12 +159,233 @@ p.italic {
   height: 80%;
 }
 
-.left_panel {
+#subject_checkboxes {
+  font-size: 13.5px;
+  padding-bottom: 10px;
   padding-left: 15px;
-  padding-bottom: 20px;
-  border: solid #1A213D;
+  padding-right: 15px;
 }
 
-.options {
-  padding-left: 15px;
+#class_checkboxes {
+  padding-bottom: 10px;
+  font-size: 13px;
 }
+
+.btn#arrowbutton {
+  font-size: 56px;
+  font-style: bold;
+  color: #BF9053;
+  background-color: white;
+  border: none;
+  height: 60px;
+  padding: 0px;
+}
+
+.btn#arrowbutton:hover,
+.btn#arrowbutton.active
+{
+  color: #1A213D;
+  border: none;
+  height: 60px;
+  padding: 0px;
+}
+
+.addPadding{
+  padding-left: 40px;
+  padding-right: 40px;
+}
+
+.center {
+  text-align: center;
+  padding: 0px;
+  margin: 0px;
+}
+
+.centerLeft {
+  text-align: center;
+  padding: 10px 0px 0px 3px ;
+  margin: 0px;
+}
+
+.centerMiddle {
+  text-align: center;
+  padding: 10px 3px 0px 5px ;
+  margin: 0px;
+}
+
+.centerRight {
+  text-align: center;
+  padding: 10px 3px 0px 0px ;
+  margin: 0px;
+}
+
+.right {
+  text-align: right;
+  padding: 0px;
+  margin: 0px;
+}
+
+.right2 {
+  text-align: right;
+  padding-top: 0px;
+  padding-bottom: 0px;
+  padding-right: 15px;
+  padding-left: 0px;
+  margin: 0px;
+}
+
+.left {
+  text-align: left;
+  padding: 0px;
+  margin: 0px;
+}
+
+#class_checkboxes_filter {
+  padding-left: 15px;
+  padding-top: 10px;
+  font-size: 13px;
+}
+
+#subject_checkboxes_filter {
+  padding-top: 2px;
+  font-size: 15px;
+}
+
+#all_data {
+  font-size: 13px;
+}
+
+.form-group {
+  padding: 0px;
+  margin: 0px;
+}
+
+.semester_label{
+  text-align: left;
+  line-height: 2.45;
+  padding-top: 0px;
+}
+
+.semester_input {
+  text-align: left;
+  padding: 0px;
+  margin: 0px;
+  height: 20px;
+  line-height: 0.3;
+  padding-top: 0px;
+}
+
+.container {
+  position: relative;
+  height: 550px;
+  text-align: center;
+}
+
+.centered-element {
+  margin: 0;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.btn#arrowrightbutton {
+  font-size: 56px;
+  font-style: bold;
+  color: #BF9053;
+  background-color: white;
+  border: none;
+  padding: 0px;
+  margin: 0px;
+}
+
+.btn#arrowrightbutton:hover,
+.btn#arrowrightbutton.active
+{
+  color: #1A213D;
+  border: none;
+  padding: 0px;
+  margin: 0px;
+}
+
+.sorting-disabled {
+  padding: 0px;
+}
+
+.space {
+  white-space: pre-wrap;
+  padding: 0px 50px 0px 50px ;
+  margin: 0px;
+}
+
+#metrics_analysis {
+  padding-left: 30px;
+  padding-right: 30px;
+}
+
+.btn#metricsbutton {
+  font-size: 16px;
+  color: #BF9053;
+  background-color: white;
+  font-style: bold;
+  border: 1px solid #BF9053;
+  font-family: 'General Sans', sans-serif;
+}
+.btn#metricsbutton:hover,
+.btn#metricsbutton.active
+{
+  font-size: 16px;
+  color: white;
+  background-color: #BF9053;
+  font-style: bold;
+  border: 1px solid #BF9053;
+  font-family: 'General Sans', sans-serif;
+}
+
+#GA_dataset {
+  font-size: 13px;
+}
+
+.btn#modelingbutton {
+  font-size: 16px;
+  font-weight: bold;
+  color: #BF9053;
+  border: 0px;
+  background-color: white;
+  font-style: bold;
+  font-family: 'General Sans', sans-serif;
+  padding: 2px 5px 2px 5px;
+  margin-bottom: 10px;
+}
+.btn#modelingbutton:hover,
+.btn#modelingbutton.active
+{
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+  background-color: #BF9053;
+  border: 0px;
+  font-style: bold;
+  font-family: 'General Sans', sans-serif;
+  padding: 2px 5px 2px 5px;
+  margin-bottom: 10px;
+}
+
+.LAD_title {
+  font-size: 18px;
+  padding-top: 10px;
+}
+
+.LAD {
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+#LAD_dataset {
+  font-size: 13px;
+}
+
+#LAD_dataset table tr td {
+  word-wrap: break-word;
+  max-width: 76px
+}
+
