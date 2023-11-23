@@ -375,8 +375,12 @@ p.italic {
   padding-top: 10px;
 }
 
+.LAD {
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
 #LAD_dataset {
-  margin-top: 15px;
   font-size: 13px;
 }
 

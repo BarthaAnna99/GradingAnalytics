@@ -56,12 +56,11 @@ server <- function(input, output, session) {
     df_class_end <- data.frame()
     # Process the extracted files
     for (file_path in file_list) {
-
-      setwd(fs::path(dirname(file_path)))
+      #file_path <- paste("~", file_path)
 
       if (!grepl("evfolyam", file_path, ignore.case = TRUE)) {
         if (tolower(substr(file_path, nchar(file_path) - 4, nchar(file_path))) == ".xlsx") {
-          df <- read_xlsx(basename(file_path), sheet = 1)
+          df <- read_xlsx(file_path, sheet = 1)
           # Add a column for the file name
           df <- df %>% mutate(Tantargy = gsub("\\.", "", sub("^(.*?)(_[0-9].*|\\.[^.]+)$", "\\1", tools::file_path_sans_ext(basename(file_path)))))
           df <- df %>% mutate(Tantargy_long = gsub("\\.", "", tools::file_path_sans_ext(basename(file_path))))
@@ -70,7 +69,7 @@ server <- function(input, output, session) {
       }
       else if (grepl("evfolyam", file_path, ignore.case = TRUE)) {
         if (tolower(substr(file_path, nchar(file_path) - 4, nchar(file_path))) == ".xlsx") {
-          df_class <- read_xlsx(basename(file_path), sheet = 1)
+          df_class <- read_xlsx(file_path, sheet = 1)
           df_class <- df_class[,1]
           # Add a column for the file name
           df_class <- df_class %>% mutate(Evfolyam = gsub("-", "_", substring(tools::file_path_sans_ext(basename(file_path)),1,5)))
@@ -921,6 +920,16 @@ server <- function(input, output, session) {
           LAD_result,
           extensions = "FixedColumns",
           options = list(
+            rowCallback = JS(
+              "function(row, data, index) {",
+              "var cells = $('td', row);",
+              "cells.each(function() {",
+              "  if ($(this).text() === '') {",
+              "    $(this).css('background-color', '#F5F5F5');",
+              "  }",
+              "});",
+              "}"
+            ),
             paging = FALSE,
             searching = FALSE,
             ordering = FALSE,
@@ -937,13 +946,15 @@ server <- function(input, output, session) {
             columns = 1,
             valueColumns = 1,
             target = "cell",
-            color = "#BF9053",
+            color = "white",
+            backgroundColor = "#BF9053",
             fontWeight = "bold"
-          )%>%
+          ) %>%
           formatStyle(
             columns = 1,
             target = "row",
-            color = styleEqual(c(" "), c('#BF9053')),
+            color = styleEqual(c(" "), c('white')),
+            backgroundColor = styleEqual(c(" "), c('#BF9053')),
             fontWeight = styleEqual(c(" "), c('bold'))
           )
       }
