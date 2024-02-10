@@ -91,10 +91,10 @@ body <- dashboardBody(
             fluidRow( class = 'separate',
               column(2),
               column(2, class = 'title',
-                     p("Upload Zip file: ")
+                     p("Upload zip or excel file: ")
               ),
               column(4, class = 'upload',
-                     fileInput('zipFile', label= NULL, multiple = FALSE, accept = c(".zip"), width = "100%")
+                     fileInput('zipFile', label= NULL, multiple = FALSE, accept = c(".zip", ".xls", ".xlsx"), width = "100%")
               ),
               column(2, class = 'button',
                      actionButton("upload", "Upload")
@@ -102,7 +102,7 @@ body <- dashboardBody(
               column(2)
             ),
             fluidRow(
-              column(12, class= 'addPadding',
+              column(12,
                      DTOutput("fileList")
               )
             )
@@ -111,29 +111,28 @@ body <- dashboardBody(
     ## preparedataset ############
     tabItem(tabName = "preparedataset",
             h1("Data Preparation"),
-            fluidRow( class = 'separate2',
-              column(1),
+            fluidRow( class = 'separate3',
               column(3,
-                     h3("Select Classes"),
+                     h3("Select a Program"),
+                     uiOutput("program_checkboxes"),
+                     uiOutput("program_action_button_ui"),
+                     uiOutput("select_classes"),
                      uiOutput("class_checkboxes"),
-                     actionButton("class_select_all", "Select All"),
-                     actionButton("class_deselect_all", "Deselect All")
+                     div(
+                        style = "display: flex; justify-content: center; margin-bottom: 25px",
+                        uiOutput("class_select_all_ui"),
+                        uiOutput("class_deselect_all_ui")
+                     ),
+                     uiOutput("select_subjects"),
+                     div(uiOutput("subject_checkboxes"), class = 'left'),
+                     div(
+                       style = "display: flex; justify-content: center; margin-bottom: 10px",
+                       uiOutput("subject_select_all_ui"),
+                       uiOutput("subject_deselect_all_ui"),
+                     ),
+                     uiOutput("preparation_button_ui")
               ),
-              column(7,
-                     h3("Select Subjects"),
-                     uiOutput("subject_checkboxes"),
-                     actionButton("subject_select_all", "Select All"),
-                     actionButton("subject_deselect_all", "Deselect All")
-              ),
-              column(1)
-            ),
-            fluidRow(
-              column(12, class ='center',
-                     uiOutput("action_button_ui")
-              )
-            ),
-            fluidRow(
-              column(12,
+              column(9,
                      DTOutput("all_data")
               )
             )
@@ -153,8 +152,7 @@ body <- dashboardBody(
               )
             ),
             fluidRow(
-              column(1),
-              column(3, class= 'semester_label',
+              column(4, class= 'semester_label',
                      uiOutput("semester_label_input")
               ),
               column(1, class = 'semester_input',

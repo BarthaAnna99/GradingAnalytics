@@ -1,14 +1,22 @@
+# server.R
 
+# Set the maximum request size in megabytes
+options(shiny.maxRequestSize = 30*1024^2)  # 30 MB
+
+# Shiny server logic
 server <- function(input, output, session) {
 
   uploaded_files <- reactiveVal(NULL)
+  extension <- reactiveVal(NULL)
   temp_dir_data <- reactiveVal(NULL)
   selected_data <- reactiveVal(NULL)
+  all_programs <- reactiveVal(NULL)
   all_classes <- reactiveVal(NULL)
   all_subjects <- reactiveVal(NULL)
   prep_merged_data <- reactiveVal(NULL)
   prep_classes_data <- reactiveVal(NULL)
   merged_data <- reactiveVal(NULL)
+  selected_programs_df <- data.frame(Programs = character(0))
   selected_classes_df <- data.frame(Classes = character(0))
   selected_subjects_df <- data.frame(Subjects = character(0))
   GA_data <- reactiveVal(NULL)
@@ -17,86 +25,119 @@ server <- function(input, output, session) {
   selected_classes_filter_df <- reactiveVal(NULL)
   selected_subjects_filter_df <- reactiveVal(NULL)
 
-  ########### Tabs #################
   # Import Data #################
   ## Uploading zip file ####
   observeEvent(input$upload, {
 
     req(input$zipFile)
 
-    # Get the path to the uploaded file
-    zip_file <- input$zipFile$datapath
+    # Different extensions have to be handled differently
+    file <- input$zipFile
 
-    # Create a temporary directory to extract the contents
-    temp_dir_path <- tempdir()
-    setwd(temp_dir_path)
+    if (!is.null(file)) {
+      # Get the file extension
+      file_ext <- tools::file_ext(file$name)
+      extension(file_ext)
 
-    # Extract the zip file
-    unzip(zip_file, exdir = temp_dir_path)
-
-    # Get a list of all XLSX files in the extracted subfolders
-    file_list <- list.files(temp_dir_path, pattern = "\\.xlsx$", recursive = TRUE, full.names = TRUE)
-
-    file_list <- fs::path(file_list)
-
-    file_list_df <- data.frame(
-                        Path = file_list,
-                        Folder_Name = fs::path(file_list) %>% dirname() %>% basename(),
-                        File_Name = fs::path(file_list) %>% basename()
-                    )
-
-    temp_dir_data(file_list_df)
-
-    # Store the list of uploaded files
-    uploaded_files(file_list_df[ ,2:3])
-
-
-
-    df_end <- data.frame()
-    df_class_end <- data.frame()
-    # Process the extracted files
-    for (file_path in file_list) {
-      #file_path <- paste("~", file_path)
-
-      if (!grepl("evfolyam", file_path, ignore.case = TRUE)) {
-        if (tolower(substr(file_path, nchar(file_path) - 4, nchar(file_path))) == ".xlsx") {
-          df <- read_xlsx(file_path, sheet = 1)
-          # Add a column for the file name
-          df <- df %>% mutate(Tantargy = gsub("\\.", "", sub("^(.*?)(_[0-9].*|\\.[^.]+)$", "\\1", tools::file_path_sans_ext(basename(file_path)))))
-          df <- df %>% mutate(Tantargy_long = gsub("\\.", "", tools::file_path_sans_ext(basename(file_path))))
-          df_end <- rbind(df_end, df)
-        }
-      }
-      else if (grepl("evfolyam", file_path, ignore.case = TRUE)) {
-        if (tolower(substr(file_path, nchar(file_path) - 4, nchar(file_path))) == ".xlsx") {
-          df_class <- read_xlsx(file_path, sheet = 1)
-          df_class <- df_class[,1]
-          # Add a column for the file name
-          df_class <- df_class %>% mutate(Evfolyam = gsub("-", "_", substring(tools::file_path_sans_ext(basename(file_path)),1,5)))
-          df_class <- df_class %>% mutate(Evfolyam_long = gsub("\\.", "", tools::file_path_sans_ext(basename(file_path))))
-          names(df_class)[1] <- "NeptunID"
-          df_class_end <- rbind(df_class_end, df_class)
+      # Check if it's an Excel file
+      if (file_ext %in% c("xls", "xlsx")) {
+        # Handle Excel file
+        df <- read_xlsx(file$datapath, sheet = 1)
+        if (nrow(df) > 0) {
+          names(df)[1:11] <- c("Programkod", "Program", "NeptunID", "Nem", "Evfolyam", "Tantargy", "Targykod","Jegy","Tipus","Datum", "Felev")
+          df <- df %>%
+            mutate(Program = paste(Program, Programkod, sep = ' - ')) %>%
+            dplyr::select(Program, NeptunID, Nem, Evfolyam, Tantargy, Jegy, Tipus, Datum, Felev)
+          uploaded_files(df)
         }
       }
 
+      # Check if it's a zip file
+      else if (file_ext %in% c("zip")) {
+        # Handle zip file
+        # Get the path to the uploaded file
+        zip_file <- input$zipFile$datapath
+
+        # Create a temporary directory to extract the contents
+        temp_dir_path <- tempdir()
+        setwd(temp_dir_path)
+
+        # Extract the zip file
+        unzip(zip_file, exdir = temp_dir_path)
+
+        # Get a list of all XLSX files in the extracted subfolders
+        file_list <- list.files(temp_dir_path, pattern = "\\.xlsx$", recursive = TRUE, full.names = TRUE)
+
+        file_list <- fs::path(file_list)
+
+        file_list_df <- data.frame(
+          Path = file_list,
+          Folder_Name = fs::path(file_list) %>% dirname() %>% basename(),
+          File_Name = fs::path(file_list) %>% basename()
+        )
+
+        temp_dir_data(file_list_df)
+
+        # Store the list of uploaded files
+        uploaded_files(file_list_df[ ,2:3])
+
+
+
+        df_end <- data.frame()
+        df_class_end <- data.frame()
+        # Process the extracted files
+        for (file_path in file_list) {
+          #file_path <- paste("~", file_path)
+
+          if (!grepl("evfolyam", file_path, ignore.case = TRUE)) {
+            if (tolower(substr(file_path, nchar(file_path) - 4, nchar(file_path))) == ".xlsx") {
+              df <- read_xlsx(file_path, sheet = 1)
+              # Add a column for the file name
+              df <- df %>% mutate(Tantargy = gsub("\\.", "", sub("^(.*?)(_[0-9].*|\\.[^.]+)$", "\\1", tools::file_path_sans_ext(basename(file_path)))))
+              df <- df %>% mutate(Tantargy_long = gsub("\\.", "", tools::file_path_sans_ext(basename(file_path))))
+              df_end <- rbind(df_end, df)
+            }
+          }
+          else if (grepl("evfolyam", file_path, ignore.case = TRUE)) {
+            if (tolower(substr(file_path, nchar(file_path) - 4, nchar(file_path))) == ".xlsx") {
+              df_class <- read_xlsx(file_path, sheet = 1)
+              df_class <- df_class[,1]
+              # Add a column for the file name
+              df_class <- df_class %>% mutate(Evfolyam = gsub("-", "_", substring(tools::file_path_sans_ext(basename(file_path)),1,5)))
+              df_class <- df_class %>% mutate(Evfolyam_long = gsub("\\.", "", tools::file_path_sans_ext(basename(file_path))))
+              names(df_class)[1] <- "NeptunID"
+              df_class_end <- rbind(df_class_end, df_class)
+            }
+          }
+
+        }
+
+        if (nrow(df_end) > 0) {
+          names(df_end)[1:5] <- c("NeptunID","Nem","Jegy","Tipus","Eredmeny")
+          prep_merged_data(df_end)
+        }
+        if (nrow(df_class_end) > 0) {
+          prep_classes_data(df_class_end)
+        }
+      }
     }
 
-    if (nrow(df_end) > 0) {
-      names(df_end)[1:5] <- c("NeptunID","Nem","Jegy","Tipus","Eredmeny")
-      prep_merged_data(df_end)
-      }
-    if (nrow(df_class_end) > 0) {
-      prep_classes_data(df_class_end)
-      }
 
   })
 
   output$fileList <- renderDT({
-    datatable(uploaded_files(), selection = 'single')
+    if(!is.null(extension()) && extension() %in% c("zip")) {
+      datatable(uploaded_files(), selection = 'single')
+    }
+    else {
+      datatable(uploaded_files(), options = list(pageLength = 7), selection = 'none')
+    }
+
   })
 
 
   ## Showing data in dialog #############
+  # Only when a zip is uploaded (selection is disabled otherwise)
   observeEvent(input$fileList_rows_selected, {
     if (is.null(prep_classes_data()) && is.null(prep_merged_data())) return()
 
@@ -142,77 +183,185 @@ server <- function(input, output, session) {
 
   # Data preparation ################
   ## Filter options #####
+  ### Program #####
   # Create a reactive expression for checkbox options
-  class_options <- reactive({
-    if (!is.null(temp_dir_data())) {
-      selected_item_df <- temp_dir_data()
-      classes_data <- subset(selected_item_df, grepl("evfolyam", Folder_Name, ignore.case = TRUE))
-      classes <- unique(gsub("-", "_", substring(classes_data$File_Name,1,5)))
+  programs_options <- reactive({
+    if(!is.null(extension()) && extension() %in% c("zip")) {
+      if (!is.null(temp_dir_data())) {
+        programs <- c("Default")
+        all_programs(programs)
+        if (!is.null(programs)) {
+          selectInput("selected_programs", label = NULL, choices = programs, selected = programs[1])
+        }
+      }
+    }
+    else {
+      if (!is.null(uploaded_files())) {
+        df <- uploaded_files()
+        programs <- unique(df$Program)
+        programs <- programs[order(programs)]
+        all_programs(programs)
+        if (!is.null(programs)) {
+          selectInput("selected_programs", label = NULL, choices = programs, selected = programs[1])
+        }
+      }
+    }
+
+  })
+
+  # Render the dynamic checkboxes
+  output$program_checkboxes <- renderUI({
+    programs_options()
+  })
+
+  # Render program_arrow button
+  output$program_action_button_ui <- renderUI({
+    if (!is.null(uploaded_files())) {
+      actionButton("program_arrowbutton", icon("angle-down"))
+    }
+  })
+
+  observeEvent(input$program_arrowbutton, {
+
+    output$select_classes <- renderUI({
+      h3("Select Classes")
+    })
+    output$class_select_all_ui <- renderUI({
+      actionButton("class_select_all", "Select All")
+    })
+    output$class_deselect_all_ui <- renderUI({
+      actionButton("class_deselect_all", "Deselect All")
+    })
+
+    selected_programs <- input$selected_programs
+    if (length(selected_programs) > 0) {
+      new_selections <- data.frame(Programs = selected_programs)
+      selected_programs_df <- rbind(selected_programs_df, new_selections)
+    }
+
+    ### Class #####
+    # Create a reactive expression for checkbox options
+    class_options <- reactive({
+      if(!is.null(extension()) && extension() %in% c("zip")) {
+        if (!is.null(temp_dir_data())) {
+          selected_item_df <- temp_dir_data()
+          classes_data <- subset(selected_item_df, grepl("evfolyam", Folder_Name, ignore.case = TRUE))
+          classes <- unique(gsub("-", "_", substring(classes_data$File_Name,1,5)))
+        }
+      }
+      else {
+        df <- uploaded_files()
+        df <- df[df$Program %in% selected_programs,]
+        classes <- unique(df$Evfolyam)
+        classes <- classes[order(classes)]
+      }
       all_classes(classes)
       if (!is.null(classes)) {
         checkboxGroupInput("selected_classes", label = NULL, choices = classes, selected = classes, inline= TRUE)
       }
+
+    })
+
+    # Render the dynamic checkboxes
+    output$class_checkboxes <- renderUI({
+      class_options()
+    })
+
+    # Select All button logic
+    observeEvent(input$class_select_all, {
+      classes <- all_classes()
+      updateCheckboxGroupInput(session, "selected_classes", choices = classes, selected = classes, inline= TRUE)
+    })
+
+    # Deselect All button logic
+    observeEvent(input$class_deselect_all, {
+      classes <- all_classes()
+      updateCheckboxGroupInput(session, "selected_classes", choices = classes, selected = NULL, inline= TRUE)
+    })
+
+    # Render subject_action_button_ui button
+    output$subject_action_button_ui <- renderUI({
+      if (!is.null(uploaded_files())) {
+        actionButton("subject_arrowbutton", icon("angle-down"))
+      }
+    })
+
+    output$select_subjects <- renderUI({
+      h3("Select Subjects")
+    })
+    output$subject_select_all_ui <- renderUI({
+      actionButton("subject_select_all", "Select All")
+    })
+    output$subject_deselect_all_ui <- renderUI({
+      actionButton("subject_deselect_all", "Deselect All")
+    })
+
+    selected_programs <- input$selected_programs
+    if (length(selected_programs) > 0) {
+      new_selections <- data.frame(Programs = selected_programs)
+      selected_programs_df <- rbind(selected_programs_df, new_selections)
     }
-  })
 
-  # Render the dynamic checkboxes
-  output$class_checkboxes <- renderUI({
-    class_options()
-  })
+    ### Subject #####
+    # Create a reactive expression for checkbox options
+    subject_options <- reactive({
+      if(!is.null(extension()) && extension() %in% c("zip")) {
+        if (!is.null(temp_dir_data())) {
+          selected_item_df <- temp_dir_data()
+          subject_data <- subset(selected_item_df, !grepl("evfolyam", Folder_Name, ignore.case = TRUE))
+          subjects <- sort(unique(gsub("\\.", "", sub("^(.*?)(_[0-9].*|\\.[^.]+)$", "\\1", subject_data$File_Name))))
+        }
+      }
+      else {
+        df <- uploaded_files()
+        df <- df[df$Program %in% selected_programs,]
+        selected_classes <- input$selected_classes
+        if (length(selected_classes) > 0) {
+          df <- df[df$Evfolyam %in% selected_classes,]
+        }
 
-  # Select All button logic
-  observeEvent(input$class_select_all, {
-    classes <- all_classes()
-    updateCheckboxGroupInput(session, "selected_classes", choices = classes, selected = classes, inline= TRUE)
-  })
+        df <- df %>%
+          distinct(Tantargy, NeptunID) %>%
+          group_by(Tantargy) %>%
+          summarize(Nr = n()) %>%
+          mutate(TantargyNr = paste(Tantargy ,  ' (', Nr, ')'))
 
-  # Deselect All button logic
-  observeEvent(input$class_deselect_all, {
-    classes <- all_classes()
-    updateCheckboxGroupInput(session, "selected_classes", choices = classes, selected = NULL, inline= TRUE)
-  })
-
-  # Create a reactive expression for checkbox options
-  subject_options <- reactive({
-    if (!is.null(temp_dir_data())) {
-      selected_item_df <- temp_dir_data()
-      subject_data <- subset(selected_item_df, !grepl("evfolyam", Folder_Name, ignore.case = TRUE))
-      subjects <- sort(unique(gsub("\\.", "", sub("^(.*?)(_[0-9].*|\\.[^.]+)$", "\\1", subject_data$File_Name))))
+        subjects <- unique(df$TantargyNr)
+        subjects <- subjects[order(subjects)]
+      }
       all_subjects(subjects)
       if (!is.null(subjects)) {
-        checkboxGroupInput("selected_subjects", label = NULL, choices = subjects, selected = subjects, inline= TRUE)
+        checkboxGroupInput("selected_subjects", label = NULL, choices = subjects, selected = subjects)
       }
-    }
-  })
 
-  # Render the dynamic checkboxes
-  output$subject_checkboxes <- renderUI({
-    subject_options()
-  })
+    })
 
-  # Select All button logic
-  observeEvent(input$subject_select_all, {
-    subjects <- all_subjects()
-    updateCheckboxGroupInput(session, "selected_subjects", choices = subjects, selected = subjects, inline= TRUE)
-  })
+    # Render the dynamic checkboxes
+    output$subject_checkboxes <- renderUI({
+      subject_options()
+    })
 
-  # Deselect All button logic
-  observeEvent(input$subject_deselect_all, {
-    subjects <- all_subjects()
-    updateCheckboxGroupInput(session, "selected_subjects", choices = subjects, selected = NULL, inline= TRUE)
-  })
+    # Select All button logic
+    observeEvent(input$subject_select_all, {
+      subjects <- all_subjects()
+      updateCheckboxGroupInput(session, "selected_subjects", choices = subjects, selected = subjects)
+    })
 
+    # Deselect All button logic
+    observeEvent(input$subject_deselect_all, {
+      subjects <- all_subjects()
+      updateCheckboxGroupInput(session, "selected_subjects", choices = subjects, selected = NULL)
+    })
 
-  # Render arrow button
-  output$action_button_ui <- renderUI({
-    if (!is.null(uploaded_files())) {
-      actionButton("arrowbutton", icon("angle-down"))
-    }
+    # Render button
+    output$preparation_button_ui <- renderUI({
+      actionButton("preparationbutton", "Process data")
+    })
 
   })
 
   ## Save data #########
-  observeEvent(input$arrowbutton, {
+  observeEvent(input$preparationbutton, {
     # Save selected classes
     selected_classes <- input$selected_classes
      if (length(selected_classes) > 0) {
@@ -222,73 +371,130 @@ server <- function(input, output, session) {
 
     # Save selected subjects
     selected_subjects <- input$selected_subjects
+    selected_subjects <- str_replace(selected_subjects, '\\s*\\([^)]+\\)', '')
+
     if (length(selected_subjects) > 0) {
       new_selections <- data.frame(Subjects = selected_subjects)
       selected_subjects_df <- rbind(selected_subjects_df, new_selections)
     }
 
-    # Load all the data into a df
-    if (!is.null(prep_merged_data()) && !is.null(prep_classes_data())) {
+    ### For zip #######
+    if(!is.null(extension()) && extension() %in% c("zip")) {
+      if (!is.null(prep_merged_data()) && !is.null(prep_classes_data())) {
 
-      classes_data <- prep_classes_data()
-      merged_data <- prep_merged_data()
+        classes_data <- prep_classes_data()
+        merged_data <- prep_merged_data()
+      }
+    }
+    ## For excel #######
+    else {
+      selected_programs <- input$selected_programs
 
-      # Filter data to selected values
-      classes_data <- classes_data[classes_data$Evfolyam %in% selected_classes_df$Classes, ]
+      merged_data <- uploaded_files() %>%
+        mutate(Datum = as.POSIXct(Datum, format="%Y-%m-%d %H:%M:%S"))
 
-      # Remove those who reapplied
-      NeptunID_df <- classes_data %>%
-        group_by(NeptunID) %>%
-        summarize(cnt = n()) %>%
-        filter(cnt == 1)
+      merged_data <- merged_data[merged_data$Program %in% selected_programs, ]
 
-      classes_data <- classes_data[classes_data$NeptunID %in% NeptunID_df$NeptunID, ]
+      classes_data <- merged_data %>%
+        distinct(Evfolyam, NeptunID)
 
-      merged_data <- merged_data[merged_data$Tantargy %in% selected_subjects_df$Subjects, ]
+    }
 
-      result <- inner_join(classes_data, merged_data, by = "NeptunID")
 
-      subjects <- result %>%
-        filter(Tipus == c("Gyakorlati jegy", "Vizsgajegy")) %>%
-        group_by(Tantargy, Tipus) %>%
-        distinct(Tantargy, Tipus)
+    # Filter data to selected values
+    classes_data <- classes_data[classes_data$Evfolyam %in% selected_classes_df$Classes, ]
 
+    # Remove those who reapplied
+    NeptunID_df <- classes_data %>%
+      group_by(NeptunID) %>%
+      summarize(cnt = n()) %>%
+      filter(cnt == 1)
+
+    classes_data <- classes_data[classes_data$NeptunID %in% NeptunID_df$NeptunID, ]
+
+    merged_data <- merged_data[merged_data$Tantargy %in% selected_subjects_df$Subjects, ]
+
+    if(!is.null(extension()) && !(extension() %in% c("zip"))) {
+
+      temp_result <- merged_data %>%
+        group_by(NeptunID, Nem, Tantargy) %>%
+        summarise(
+          MaxDatum = max(Datum),
+        ) %>%
+        dplyr::select(NeptunID, Nem, Tantargy, MaxDatum)
+
+      final_grade <- merged_data %>%
+        inner_join(temp_result, by = c("NeptunID", "Nem", "Tantargy", "Datum" = "MaxDatum")) %>%
+        dplyr::select(NeptunID, Nem, Tantargy, Jegy)
+
+      merged_data <- merged_data %>%
+        group_by(NeptunID, Nem, Tantargy, Felev) %>%
+        summarise(
+          Tipus = max(Tipus),
+          Eredmeny = paste(Jegy, collapse = ';')
+        ) %>%
+        dplyr::select(NeptunID, Nem, Tantargy, Tipus, Eredmeny)
+
+      merged_data <- merged_data %>%
+        left_join(final_grade, by = c("NeptunID", "Nem", "Tantargy")) %>%
+        dplyr::select(NeptunID, Nem, Tantargy, Tipus, Jegy, Eredmeny)
+
+    }
+
+    result <- inner_join(classes_data, merged_data, by = "NeptunID")
+
+    subjects <- result %>%
+      filter(Tipus == c("Gyakorlati jegy", "Vizsgajegy")) %>%
+      group_by(Tantargy) %>%
+      summarize(Tipus = max(Tipus)) %>%
+      dplyr::select(Tantargy, Tipus)
+
+
+    # For zip
+    if(!is.null(extension()) && extension() %in% c("zip")) {
       result <- result %>% dplyr::select(NeptunID, Nem, Jegy, Eredmeny, Tantargy, Evfolyam, Tantargy_long)
+    }
+    # For excel
+    else {
+      result <- result %>% dplyr::select(NeptunID, Nem, Jegy, Eredmeny, Tantargy, Evfolyam)
+    }
 
-      result <- inner_join(result, subjects, by = "Tantargy")
+
+    result <- inner_join(result, subjects, by = "Tantargy")
 
 
-      # Decode grade
-      result <- result %>%
-        mutate(
-          Jegy = case_when(
-            Jegy == "Jeles" ~ 5,
-            Jegy == "Jó" ~ 4,
-            Jegy == "Közepes" ~ 3,
-            Jegy == "Elégséges" ~ 2,
-            Jegy == "Elégtelen" ~ 1,
-            TRUE ~ 0
-          )
+    # Decode grade
+    result <- result %>%
+      mutate(
+        Jegy = case_when(
+          Jegy == "Jeles" ~ 5,
+          Jegy == "Jó" ~ 4,
+          Jegy == "Közepes" ~ 3,
+          Jegy == "Elégséges" ~ 2,
+          Jegy == "Elégtelen" ~ 1,
+          TRUE ~ 0
+        )
+      )
+      # Count exams
+    result <- result %>%
+      mutate(
+        Count_Elegtelen = str_count(result$Eredmeny, "Elégtelen"),
+        Count_Elégseges = str_count(result$Eredmeny, "Elégséges"),
+        Count_Kozepes = str_count(result$Eredmeny, "Közepes"),
+        Count_Jo = str_count(result$Eredmeny, "Jó"),
+        Count_Jeles = str_count(result$Eredmeny, "Jeles"),
+        Vizsgafelv_prep = Count_Elegtelen + Count_Elégseges + Count_Kozepes + Count_Jo + Count_Jeles
         )
 
-      # Count exams
-      result <- result %>%
-        mutate(
-          Count_Elegtelen = str_count(result$Eredmeny, "Elégtelen"),
-          Count_Elégseges = str_count(result$Eredmeny, "Elégséges"),
-          Count_Kozepes = str_count(result$Eredmeny, "Közepes"),
-          Count_Jo = str_count(result$Eredmeny, "Jó"),
-          Count_Jeles = str_count(result$Eredmeny, "Jeles"),
-          Vizsgafelv_prep = Count_Elegtelen + Count_Elégseges + Count_Kozepes + Count_Jo + Count_Jeles
-          )
+    result_prep <- result %>%
+      group_by(NeptunID, Tantargy) %>%
+      arrange(desc(Evfolyam)) %>%
+      summarize(Vizsgafelv = sum(Vizsgafelv_prep), Targyfelv = n(), RowNumber = row_number())
 
-      result_prep <- result %>%
-        group_by(NeptunID, Tantargy) %>%
-        arrange(desc(Evfolyam)) %>%
-        summarize(Vizsgafelv = sum(Vizsgafelv_prep), Targyfelv = n(), RowNumber = row_number())
+    GA_data <- inner_join(result_prep, result, by = c("NeptunID", "Tantargy"))
 
-      GA_data <- inner_join(result_prep, result, by = c("NeptunID", "Tantargy"))
-
+    # For zip
+    if(!is.null(extension()) && extension() %in% c("zip")) {
       GA_data <- GA_data %>%
         filter(RowNumber == 1) %>%
         dplyr::select(Evfolyam, NeptunID, Nem, Tantargy, Tipus, Jegy, Vizsgafelv, Targyfelv, Tantargy_long)
@@ -300,23 +506,33 @@ server <- function(input, output, session) {
         dplyr::select(NeptunID, Tantargy, Tantargy_long)
 
       GA_data <- inner_join(GA_data, GA_data_prep, by = c("NeptunID", "Tantargy", "Tantargy_long"))
-
-      GA_data <- GA_data %>%
-        dplyr::select(Evfolyam, NeptunID, Nem, Tantargy, Tipus, Jegy, Vizsgafelv, Targyfelv)
-
-      GA_data$Nem <- gsub("Nõ", "Nő", GA_data$Nem)
-
-      GA_data(GA_data)
-
-      output$all_data <- renderDT({
-        datatable(GA_data, options = list(pageLength = 7), selection = 'none')
-      })
     }
+    # For excel
+    else {
+      GA_data <- GA_data %>%
+        filter(RowNumber == 1) %>%
+        distinct(Evfolyam, NeptunID, Nem, Tantargy, Tipus, Jegy, Vizsgafelv, Targyfelv)  %>%
+        dplyr::select(Evfolyam, NeptunID, Nem, Tantargy, Tipus, Jegy, Vizsgafelv, Targyfelv)
+    }
+
+    GA_data <- GA_data %>%
+      dplyr::select(Evfolyam, NeptunID, Nem, Tantargy, Tipus, Jegy, Vizsgafelv, Targyfelv)
+
+    GA_data$Nem <- gsub("Nõ", "Nő", GA_data$Nem)
+
+    GA_data(GA_data)
+
+    output$all_data <- renderDT({
+      datatable(GA_data, options = list(pageLength = 15),
+                selection = 'none',
+                rownames = FALSE,
+                class = "cell-border")
+    })
 
   })
 
   # Program Sructure #############
-  ## Set the semesters ##########
+  ### Set the semesters ##########
   # Create a dynamic UI for selectOption elements
   label_options <- reactive({
     if (!is.null(GA_data())) {
@@ -361,7 +577,7 @@ server <- function(input, output, session) {
     }
   })
 
-  ## Show the structure ###########
+  ### Show the structure ###########
   observeEvent(input$arrowrightbutton, {
     subjects <- GA_data()
     subjects <- data.frame(Subjects = unique(subjects$Tantargy))
@@ -426,7 +642,7 @@ server <- function(input, output, session) {
   })
 
   # Vizualization #########
-  ## Barchart ##############
+  ### Barchart ##############
   output$bar_chart <- renderPlot({
 
     if (!is.null(GA_final_data())) {
@@ -456,7 +672,7 @@ server <- function(input, output, session) {
 
   })
 
-  ## Line chart ###############
+  ### Line chart ###############
   output$line_chart <- renderPlot({
 
     if (!is.null(GA_final_data())) {
@@ -502,7 +718,7 @@ server <- function(input, output, session) {
 
   })
 
-  ## Pie chart #############
+  ### Pie chart #############
   output$pie_chart <- renderPlot({
 
     if (!is.null(GA_final_data())) {
@@ -531,11 +747,12 @@ server <- function(input, output, session) {
 
   })
 
-  ## Filter options ###########
+  ### Filter options ###########
   # Create a reactive expression for checkbox options
   class_options_filter <- reactive({
-    if (!is.null(all_classes())) {
-      options <- all_classes()
+    if (!is.null(GA_final_data())) {
+      options <- unique(GA_final_data()$Evfolyam)
+      options <- options[order(options)]
       if (!is.null(options)) {
         selected_classes_filter_df(options)
         checkboxGroupInput("selected_classes_filter", label = NULL, choices = options, selected = options, inline= TRUE)
@@ -552,8 +769,9 @@ server <- function(input, output, session) {
 
   # Create a reactive expression for checkbox options
   subject_options_filter <- reactive({
-    if (!is.null(all_subjects())) {
-      options <- all_subjects()
+    if (!is.null(GA_final_data())) {
+      options <- unique(GA_final_data()$Tantargy)
+      options <- options[order(options)]
       selected_subjects_filter_df(options[1])
       selectInput(inputId = "selected_subjects_filter", label = NULL, choices = options, selected = options[1], width = "260px")
     }
@@ -574,7 +792,7 @@ server <- function(input, output, session) {
     selected_subjects_filter_df(input$selected_subjects_filter)
   })
 
-  ## Subject bar charts ###############
+  ### Subject bar charts ###############
   output$bar_chart_grades <- renderPlot({
     if (!is.null(GA_final_data()) && !is.null(selected_classes_filter_df()) && !is.null(selected_subjects_filter_df()) ) {
       GA_data <- GA_final_data()
@@ -669,7 +887,7 @@ server <- function(input, output, session) {
   })
 
   # Metrics ###############
-  ## Porcess button ###########
+  ### Porcess button ###########
 
   # Render button
   output$metrics_button_ui <- renderUI({
@@ -678,7 +896,7 @@ server <- function(input, output, session) {
     }
   })
 
-  ## Calculate metrics ###########
+  ### Calculate metrics ###########
   observeEvent(input$metricsbutton, {
     GA_final_data <- GA_final_data()
 
@@ -783,9 +1001,41 @@ server <- function(input, output, session) {
   })
 
 
-  ## Calculate betas ###########
+  ### Calculate betas ###########
   observeEvent(input$modelingbutton, {
     GA_metrics_data <- GA_metrics_data()
+
+    # Define a function to perform the replacements
+    replace_characters <- function(text) {
+      text <- gsub("ö", "o", text)
+      text <- gsub("ü", "u", text)
+      text <- gsub("ú", "u", text)
+      text <- gsub("ó", "o", text)
+      text <- gsub("ő", "o", text)
+      text <- gsub("ú", "u", text)
+      text <- gsub("é", "e", text)
+      text <- gsub("á", "a", text)
+      text <- gsub("ű", "u", text)
+      text <- gsub("í", "i", text)
+      text <- gsub("Ö", "O", text)
+      text <- gsub("Ü", "U", text)
+      text <- gsub("Ú", "U", text)
+      text <- gsub("Ü", "U", text)
+      text <- gsub("Ó", "O", text)
+      text <- gsub("Ő", "O", text)
+      text <- gsub("Ú", "U", text)
+      text <- gsub("É", "E", text)
+      text <- gsub("Á", "A", text)
+      text <- gsub("Ű", "U", text)
+      text <- gsub("Í", "I", text)
+      text <- gsub("-", "_", text)
+      text <- gsub(" ", "_", text)
+
+      return(text)
+    }
+
+    # Apply the function to the Tantargy column
+    GA_metrics_data$Tantargy <- sapply(GA_metrics_data$Tantargy, replace_characters)
 
     AllEvfolyam <- c(unique(GA_metrics_data$Evfolyam))
     AllEvfolyam[1] <- ""
@@ -812,7 +1062,7 @@ server <- function(input, output, session) {
     AllTantargy <- c('X.Intercept.', 'Nem', paste("Evfolyam_", AllEvfolyam[-1]), Subject_semester$Tantargy)
 
     # Create an empty data frame with column names
-    LAD_result <- data.frame(matrix(nrow = 0, ncol = length(AllTantargy) + length(AllEvfolyam[-1]) -2))
+    LAD_result <- data.frame(matrix(nrow = 0, ncol = length(AllTantargy) + length(AllEvfolyam[-1])))
     colnames(LAD_result) <- AllTantargy
     column_names_row <- as.data.frame(t(colnames(LAD_result)))
     column_names_row[1,1] <- 'Beta'
@@ -865,7 +1115,7 @@ server <- function(input, output, session) {
         lad_sum2 <- summary(lad_regression2)
         aicB <- AIC(lad_regression2)
 
-        if (aicA >= aicB || max(lad_coeff_m$p.value) > 0.15) {
+        if ((aicA >= aicB || max(lad_coeff_m$p.value) > 0.15) && (ncol(adatok) > 1)) {
           unpivoted_GA_metrics_data <- adatok
           szamlalo <- szamlalo + 1
         }
@@ -906,7 +1156,13 @@ server <- function(input, output, session) {
 
     }
 
-    ## Show the results ############
+    ### Show the results ############
+
+    # Check if the value in the first row and last column is empty
+    if (is.na(LAD_result[1, ncol(LAD_result)])) {
+      # Remove the last column
+      LAD_result <- LAD_result[, -ncol(LAD_result)]
+    }
 
     LAD_result <- LAD_result %>%
       rownames_to_column(var = "RowNames")

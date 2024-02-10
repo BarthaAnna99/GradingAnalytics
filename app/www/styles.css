@@ -160,40 +160,35 @@ p.italic {
 }
 
 #subject_checkboxes {
-  font-size: 13.5px;
-  padding-bottom: 10px;
-  padding-left: 15px;
-  padding-right: 15px;
+  font-size: 14px;
+  padding: 7px;
 }
 
 #class_checkboxes {
   padding-bottom: 10px;
-  font-size: 13px;
+  font-size: 14px;
 }
 
-.btn#arrowbutton {
-  font-size: 56px;
-  font-style: bold;
+.btn#program_arrowbutton {
+  font-size: 30px;
   color: #BF9053;
   background-color: white;
   border: none;
-  height: 60px;
-  padding: 0px;
+  height: 40px;
+  padding-top: 0px;
+  margin: 0px;
 }
 
-.btn#arrowbutton:hover,
-.btn#arrowbutton.active
+.btn#program_arrowbutton:hover,
+.btn#program_arrowbutton.active
 {
   color: #1A213D;
   border: none;
-  height: 60px;
-  padding: 0px;
+  height: 40px;
+  padding-top: 0px;
+  margin: 0px;
 }
 
-.addPadding{
-  padding-left: 40px;
-  padding-right: 40px;
-}
 
 .center {
   text-align: center;
@@ -247,12 +242,19 @@ p.italic {
 }
 
 #subject_checkboxes_filter {
-  padding-top: 2px;
+  padding-top: 0px;
   font-size: 15px;
 }
 
 #all_data {
-  font-size: 13px;
+  margin-top: 5px;
+  margin-left: 5px;
+  padding: 5px;
+  font-size: 12px;
+}
+
+ #fileList {
+   font-size: 12px;
 }
 
 .form-group {
@@ -262,8 +264,9 @@ p.italic {
 
 .semester_label{
   text-align: left;
-  line-height: 2.45;
+  line-height: 2.42;
   padding-top: 0px;
+  padding-left: 20px;
 }
 
 .semester_input {
@@ -288,6 +291,13 @@ p.italic {
   transform: translateY(-50%);
 }
 
+#subject_select_all #class_select_all {
+  margin-right: 2px;
+}
+#subject_deselect_all #class_deselect_all {
+  margin-left: 2px;
+}
+
 .btn#arrowrightbutton {
   font-size: 56px;
   font-style: bold;
@@ -305,6 +315,10 @@ p.italic {
   border: none;
   padding: 0px;
   margin: 0px;
+}
+
+.btn#preparationbutton {
+  margin-top: 15px;
 }
 
 .sorting-disabled {
@@ -332,6 +346,25 @@ p.italic {
 }
 .btn#metricsbutton:hover,
 .btn#metricsbutton.active
+{
+  font-size: 16px;
+  color: white;
+  background-color: #BF9053;
+  font-style: bold;
+  border: 1px solid #BF9053;
+  font-family: 'General Sans', sans-serif;
+}
+
+.btn#preparationbutton {
+  font-size: 16px;
+  color: #BF9053;
+  background-color: white;
+  font-style: bold;
+  border: 1px solid #BF9053;
+  font-family: 'General Sans', sans-serif;
+}
+.btn#preparationbutton:hover,
+.btn#preparationbutton.active
 {
   font-size: 16px;
   color: white;
