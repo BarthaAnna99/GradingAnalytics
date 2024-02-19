@@ -1124,8 +1124,9 @@ server <- function(input, output, session) {
             if (ncol(adatok) <= 1) {
               feltetel <- FALSE
               cat("No more variables")
-              GA_metrics_data <- GA_metrics_data %>%
-                filter(!(Tantargy %in% szelektalt))
+
+              #GA_metrics_data <- GA_metrics_data %>%
+                #filter(!(Tantargy %in% szelektalt))
               independent_variables <- paste(independent_variables, outcome, "; ")
             }
             else if (any(is.nan(lad_coeff_m$p.value)) || any(is.infinite(lad_coeff_m$p.value))) {
@@ -1235,7 +1236,7 @@ server <- function(input, output, session) {
         })
 
         output$independent_output <- renderText({
-          paste("The following subjects are independent variables, so they were eliminated from the model: ", independent_variables)
+          paste("The following subjects are independent variables, so they were eliminated from the models: ", independent_variables)
         })
 
       }
