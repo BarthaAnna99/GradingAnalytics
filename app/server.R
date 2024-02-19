@@ -1003,224 +1003,279 @@ server <- function(input, output, session) {
 
   ### Calculate betas ###########
   observeEvent(input$modelingbutton, {
-    GA_metrics_data <- GA_metrics_data()
+    tryCatch({
+      GA_metrics_data <- GA_metrics_data()
 
-    # Define a function to perform the replacements
-    replace_characters <- function(text) {
-      text <- gsub("ö", "o", text)
-      text <- gsub("ü", "u", text)
-      text <- gsub("ú", "u", text)
-      text <- gsub("ó", "o", text)
-      text <- gsub("ő", "o", text)
-      text <- gsub("ú", "u", text)
-      text <- gsub("é", "e", text)
-      text <- gsub("á", "a", text)
-      text <- gsub("ű", "u", text)
-      text <- gsub("í", "i", text)
-      text <- gsub("Ö", "O", text)
-      text <- gsub("Ü", "U", text)
-      text <- gsub("Ú", "U", text)
-      text <- gsub("Ü", "U", text)
-      text <- gsub("Ó", "O", text)
-      text <- gsub("Ő", "O", text)
-      text <- gsub("Ú", "U", text)
-      text <- gsub("É", "E", text)
-      text <- gsub("Á", "A", text)
-      text <- gsub("Ű", "U", text)
-      text <- gsub("Í", "I", text)
-      text <- gsub("-", "_", text)
-      text <- gsub(" ", "_", text)
+      # Define a function to perform the replacements
+      replace_characters <- function(text) {
+        text <- gsub("ö", "o", text)
+        text <- gsub("ü", "u", text)
+        text <- gsub("ú", "u", text)
+        text <- gsub("ó", "o", text)
+        text <- gsub("ő", "o", text)
+        text <- gsub("ú", "u", text)
+        text <- gsub("é", "e", text)
+        text <- gsub("á", "a", text)
+        text <- gsub("ű", "u", text)
+        text <- gsub("í", "i", text)
+        text <- gsub("Ö", "O", text)
+        text <- gsub("Ü", "U", text)
+        text <- gsub("Ú", "U", text)
+        text <- gsub("Ü", "U", text)
+        text <- gsub("Ó", "O", text)
+        text <- gsub("Ő", "O", text)
+        text <- gsub("Ú", "U", text)
+        text <- gsub("É", "E", text)
+        text <- gsub("Á", "A", text)
+        text <- gsub("Ű", "U", text)
+        text <- gsub("Í", "I", text)
+        text <- gsub(",", "", text)
+        text <- gsub("\\)", "", text)
+        text <- gsub("\\(", "", text)
+        text <- gsub("-", "_", text)
+        text <- gsub(" ", "_", text)
 
-      return(text)
-    }
+        return(text)
+      }
 
-    # Apply the function to the Tantargy column
-    GA_metrics_data$Tantargy <- sapply(GA_metrics_data$Tantargy, replace_characters)
+      # Apply the function to the Tantargy column
+      GA_metrics_data$Tantargy <- sapply(GA_metrics_data$Tantargy, replace_characters)
 
-    AllEvfolyam <- c(unique(GA_metrics_data$Evfolyam))
-    AllEvfolyam[1] <- ""
+      AllEvfolyam <- c(unique(GA_metrics_data$Evfolyam))
+      AllEvfolyam[1] <- ""
 
-    GA_metrics_data <- GA_metrics_data %>%
-      mutate(Nem = case_when(Nem == "Nő" ~ 0,
-                             TRUE ~ 1)) %>%
-      mutate(Evfolyam = factor(Evfolyam, labels = AllEvfolyam)) %>%
-      mutate(Semester = as.numeric(Semester))
+      GA_metrics_data <- GA_metrics_data %>%
+        mutate(Nem = case_when(Nem == "Nő" ~ 0,
+                               TRUE ~ 1)) %>%
+        mutate(Evfolyam = factor(Evfolyam, labels = AllEvfolyam)) %>%
+        mutate(Semester = as.numeric(Semester))
 
-    GA_metrics_data <- GA_metrics_data %>%
-      pivot_wider(names_from = Evfolyam,
-                  values_from = Evfolyam,
-                  values_fill = 0,
-                  names_prefix = "Evfolyam_",
-                  values_fn = function(x) as.integer(!is.na(x)))%>%
-      dplyr::select(-Evfolyam_)
+      GA_metrics_data <- GA_metrics_data %>%
+        pivot_wider(names_from = Evfolyam,
+                    values_from = Evfolyam,
+                    values_fill = 0,
+                    names_prefix = "Evfolyam_",
+                    values_fn = function(x) as.integer(!is.na(x)))%>%
+        dplyr::select(-Evfolyam_)
 
-    Subject_semester <- GA_metrics_data %>%
-      dplyr::select(Semester, Tantargy) %>%
-      distinct() %>%
-      arrange(Semester, Tantargy)
+      Subject_semester <- GA_metrics_data %>%
+        dplyr::select(Semester, Tantargy) %>%
+        distinct() %>%
+        arrange(Semester, Tantargy)
 
-    AllTantargy <- c('X.Intercept.', 'Nem', paste("Evfolyam_", AllEvfolyam[-1]), Subject_semester$Tantargy)
+      AllTantargy <- c('X.Intercept.', 'Nem', paste("Evfolyam_", AllEvfolyam[-1]), Subject_semester$Tantargy)
 
-    # Create an empty data frame with column names
-    LAD_result <- data.frame(matrix(nrow = 0, ncol = length(AllTantargy) + length(AllEvfolyam[-1])))
-    colnames(LAD_result) <- AllTantargy
-    column_names_row <- as.data.frame(t(colnames(LAD_result)))
-    column_names_row[1,1] <- 'Beta'
-    colnames(column_names_row) <- AllTantargy
+      # Create an empty data frame with column names
+      LAD_result <- data.frame(matrix(nrow = 0, ncol = length(AllTantargy) + length(AllEvfolyam[-1])))
+      colnames(LAD_result) <- AllTantargy
+      column_names_row <- as.data.frame(t(colnames(LAD_result)))
+      column_names_row[1,1] <- 'Beta'
+      colnames(column_names_row) <- AllTantargy
 
-    LAD_result <- rbind(LAD_result, column_names_row)
-    rownames(LAD_result)[1] <- " "
+      LAD_result <- rbind(LAD_result, column_names_row)
+      rownames(LAD_result)[1] <- " "
 
-    Subject_semester <- Subject_semester %>%
-      filter(Semester > 1)
+      Subject_semester <- Subject_semester %>%
+        filter(Semester > 1)
 
-    for (i in 1:nrow(Subject_semester)) {
-      outcome <- as.character(Subject_semester[i, 2])
-      semester_filter <- as.numeric(Subject_semester[i, 1])
+      independent_variables <- ""
 
-      GA_metrics_data_n <- GA_metrics_data %>%
-        filter(Semester < semester_filter | Tantargy %in% outcome) %>%
-        dplyr::select(NeptunID, Nem, starts_with("Evfolyam"), Tantargy, Metrics)
+        for (i in 1:nrow(Subject_semester)) {
+          outcome <- as.character(Subject_semester[i, 2])
+          semester_filter <- as.numeric(Subject_semester[i, 1])
 
-      # Unpivot the DataFrame
-      unpivoted_GA_metrics_data <- GA_metrics_data_n %>%
-        pivot_wider(
-          id_cols = c(NeptunID, Nem, starts_with("Evfolyam")),
-          names_from = Tantargy,
-          values_from = Metrics
-        ) %>%
-        dplyr::select(-NeptunID)
+          GA_metrics_data_n <- GA_metrics_data %>%
+            filter(Semester < semester_filter | Tantargy %in% outcome) %>%
+            dplyr::select(NeptunID, Nem, starts_with("Evfolyam"), Tantargy, Metrics)
 
-      unpivoted_GA_metrics_data <- unpivoted_GA_metrics_data[complete.cases(unpivoted_GA_metrics_data), ]
+          # Unpivot the DataFrame
+          unpivoted_GA_metrics_data <- GA_metrics_data_n %>%
+            pivot_wider(
+              id_cols = c(NeptunID, Nem, starts_with("Evfolyam")),
+              names_from = Tantargy,
+              values_from = Metrics
+            ) %>%
+            dplyr::select(-NeptunID)
 
-      feltetel <- TRUE
-      szamlalo <- 1
+          unpivoted_GA_metrics_data <- unpivoted_GA_metrics_data[complete.cases(unpivoted_GA_metrics_data), ]
 
-      while(feltetel) {
-        lad_regression <- lad(paste(outcome ,"~.", sep=""), data = unpivoted_GA_metrics_data)
-        lad_sum <- summary(lad_regression)
-        aicA <- AIC(lad_regression)
-        cat(paste("\n\n", "Step:", szamlalo, "\n", sep=" "))
-        print(lad_sum)
-        cat(paste("AIC: ", aicA,"\n", sep=" "))
+          feltetel <- TRUE
+          szamlalo <- 1
 
-        lad_coeff <- data.frame(lad_sum[["coefficients"]])
-        lad_coeff_m <- lad_coeff[-1,]
+          while(feltetel) {
+            lad_regression <- lad(paste(outcome ,"~.", sep=""), data = unpivoted_GA_metrics_data)
+            lad_sum <- summary(lad_regression)
+            aicA <- AIC(lad_regression)
+            cat(paste("\n\n", "Step:", szamlalo, "\n", sep=" "))
+            print(lad_sum)
+            cat(paste("AIC: ", aicA,"\n", sep=" "))
 
-        szelektalt <- gsub("`", "", row.names(lad_coeff_m[lad_coeff_m$p.value == max(lad_coeff_m$p.value), ]))
-        cat(paste("Szelektált változó: ", szelektalt, "\n", sep=" "))
+            lad_coeff <- data.frame(lad_sum[["coefficients"]])
+            lad_coeff_m <- lad_coeff[-1,]
 
-        adatok <- unpivoted_GA_metrics_data[, !names(unpivoted_GA_metrics_data) %in% szelektalt, drop = FALSE]
-        lad_regression2 <- lad(paste(outcome ,"~.", sep=""), data = adatok)
-        lad_sum2 <- summary(lad_regression2)
-        aicB <- AIC(lad_regression2)
+            szelektalt <- gsub("`", "", row.names(lad_coeff_m[lad_coeff_m$p.value == max(lad_coeff_m$p.value), ]))
+            cat(paste("Szelektált változó: ", szelektalt, "\n", sep=" "))
 
-        if ((aicA >= aicB || max(lad_coeff_m$p.value) > 0.15) && (ncol(adatok) > 1)) {
-          unpivoted_GA_metrics_data <- adatok
-          szamlalo <- szamlalo + 1
-        }
-        else {
-          feltetel <- FALSE
-          cat(paste("AIC szelektálás után: ", aicB,"\n", sep=" "))
-          lad_coeff <- lad_coeff %>%
-            mutate(P_starts = case_when(
-              p.value <= 0.0001 ~ "****",
-              p.value <= 0.001 ~ "***",
-              p.value <= 0.01 ~ "**",
-              p.value <= 0.05 ~ "*",
-              TRUE ~ ""
-            )) %>%
-            mutate(Estimate = paste(round(Estimate, 3), P_starts, sep = "", collapse=NULL))
+            adatok <- unpivoted_GA_metrics_data[, !names(unpivoted_GA_metrics_data) %in% szelektalt, drop = FALSE]
+            lad_regression2 <- lad(paste(outcome ,"~.", sep=""), data = adatok)
+            lad_sum2 <- summary(lad_regression2)
+            aicB <- AIC(lad_regression2)
 
-          lad_coeff <- data.frame(lad_coeff$Estimate, row.names = row.names(lad_coeff))
-          lad_coeff <- data.frame(t(lad_coeff))
-          rownames(lad_coeff) <- outcome
+            if (ncol(adatok) <= 1) {
+              feltetel <- FALSE
+              cat("No more variables")
+              GA_metrics_data <- GA_metrics_data %>%
+                filter(!(Tantargy %in% szelektalt))
+              independent_variables <- paste(independent_variables, outcome, "; ")
+            }
+            else if (any(is.nan(lad_coeff_m$p.value)) || any(is.infinite(lad_coeff_m$p.value))) {
+              stop("Error: Numerical instability in LAD regression.")
+            }
+            else if (aicA >= aicB || max(lad_coeff_m$p.value)  > 0.15) {
+              unpivoted_GA_metrics_data <- adatok
+              szamlalo <- szamlalo + 1
+            }
+            else {
+              feltetel <- FALSE
+              cat(paste("AIC szelektálás után: ", aicB,"\n", sep=" "))
+              lad_coeff <- lad_coeff %>%
+                mutate(P_starts = case_when(
+                  p.value <= 0.0001 ~ "****",
+                  p.value <= 0.001 ~ "***",
+                  p.value <= 0.01 ~ "**",
+                  p.value <= 0.05 ~ "*",
+                  TRUE ~ ""
+                )) %>%
+                mutate(Estimate = paste(round(Estimate, 3), P_starts, sep = "", collapse=NULL))
 
-          # Get the column names from LAD_result
-          result_columns <- colnames(LAD_result)
+              lad_coeff <- data.frame(lad_coeff$Estimate, row.names = row.names(lad_coeff))
+              lad_coeff <- data.frame(t(lad_coeff))
+              rownames(lad_coeff) <- outcome
 
-          # Create a new data frame with columns from LAD_result
-          new_lad_coeff <- data.frame(matrix(NA, nrow = nrow(lad_coeff), ncol = length(result_columns)))
-          colnames(new_lad_coeff) <- result_columns
+              # Get the column names from LAD_result
+              result_columns <- colnames(LAD_result)
 
-          # Assign values from lad_coeff to the matching columns
-          new_lad_coeff[, intersect(colnames(new_lad_coeff), colnames(lad_coeff))] <- lad_coeff[, intersect(colnames(new_lad_coeff), colnames(lad_coeff))]
+              # Create a new data frame with columns from LAD_result
+              new_lad_coeff <- data.frame(matrix(NA, nrow = nrow(lad_coeff), ncol = length(result_columns)))
+              colnames(new_lad_coeff) <- result_columns
 
-          # Bind the modified lad_coeff to LAD_result
-          LAD_result <- rbind(LAD_result, new_lad_coeff)
+              # Assign values from lad_coeff to the matching columns
+              new_lad_coeff[, intersect(colnames(new_lad_coeff), colnames(lad_coeff))] <- lad_coeff[, intersect(colnames(new_lad_coeff), colnames(lad_coeff))]
 
-          rownames(LAD_result)[i+1] <- outcome
+              # Bind the modified lad_coeff to LAD_result
+              LAD_result <- rbind(LAD_result, new_lad_coeff)
 
+              rownum <- nrow(LAD_result)
+              rownames(LAD_result)[rownum] <- outcome
+
+            }
           }
+
+        }
+
+        ### Show the results ############
+
+        # Check if the value in the first row and last column is empty
+        if (is.na(LAD_result[1, ncol(LAD_result)])) {
+          # Remove the last column
+          LAD_result <- LAD_result[, -ncol(LAD_result)]
+        }
+
+        LAD_result <- LAD_result %>%
+          rownames_to_column(var = "RowNames")
+        LAD_result <- LAD_result %>%
+          mutate_all(~substr(., 1, 20)) %>%
+          mutate_all(~str_replace_all(., "_", "_ "))
+
+        output$LAD_dataset <- renderDT({
+          if(nrow(LAD_result) > 0) {
+            datatable(
+              LAD_result,
+              extensions = "FixedColumns",
+              options = list(
+                rowCallback = JS(
+                  "function(row, data, index) {",
+                  "var cells = $('td', row);",
+                  "cells.each(function() {",
+                  "  if ($(this).text() === '') {",
+                  "    $(this).css('background-color', '#F5F5F5');",
+                  "  }",
+                  "});",
+                  "}"
+                ),
+                paging = FALSE,
+                searching = FALSE,
+                ordering = FALSE,
+                info = FALSE,
+                scrollX = TRUE,
+                fixedColumns = list(leftColumns = 1)
+              ),
+              selection = 'none',
+              rownames = FALSE,
+              class = "cell-border",
+              colnames = rep("", ncol(LAD_result))
+            ) %>%
+              formatStyle(
+                columns = 1,
+                valueColumns = 1,
+                target = "cell",
+                color = "white",
+                backgroundColor = "#BF9053",
+                fontWeight = "bold"
+              ) %>%
+              formatStyle(
+                columns = 1,
+                target = "row",
+                color = styleEqual(c(" "), c('white')),
+                backgroundColor = styleEqual(c(" "), c('#BF9053')),
+                fontWeight = styleEqual(c(" "), c('bold'))
+              )
+          }
+
+        })
+
+        output$independent_output <- renderText({
+          paste("The following subjects are independent variables, so they were eliminated from the model: ", independent_variables)
+        })
+
       }
+      , error = function(e) {
+        # Handle errors or exceptions here
+        output$result_output <- renderText({
+          paste("LAD regression cannot be calculated. Error:", e$message, " Output variable: ", outcome)
+        })
+        output$alias_output <- renderPrint({
+          tryCatch({
+            output$result_output_alias <- renderText({
+              paste("Aliased values", e$message)
+            })
+            lmmd <- lm(paste(outcome, "~ ."), data = unpivoted_GA_metrics_data)
+            alias_result <- alias(lmmd)
+            alias_result
 
-    }
-
-    ### Show the results ############
-
-    # Check if the value in the first row and last column is empty
-    if (is.na(LAD_result[1, ncol(LAD_result)])) {
-      # Remove the last column
-      LAD_result <- LAD_result[, -ncol(LAD_result)]
-    }
-
-    LAD_result <- LAD_result %>%
-      rownames_to_column(var = "RowNames")
-    LAD_result <- LAD_result %>%
-      mutate_all(~substr(., 1, 20)) %>%
-      mutate_all(~str_replace_all(., "_", "_ "))
-
-    output$LAD_dataset <- renderDT({
-      if(nrow(LAD_result) > 0) {
-        datatable(
-          LAD_result,
-          extensions = "FixedColumns",
-          options = list(
-            rowCallback = JS(
-              "function(row, data, index) {",
-              "var cells = $('td', row);",
-              "cells.each(function() {",
-              "  if ($(this).text() === '') {",
-              "    $(this).css('background-color', '#F5F5F5');",
-              "  }",
-              "});",
-              "}"
-            ),
-            paging = FALSE,
-            searching = FALSE,
-            ordering = FALSE,
-            info = FALSE,
-            scrollX = TRUE,
-            fixedColumns = list(leftColumns = 1)
-          ),
-          selection = 'none',
-          rownames = FALSE,
-          class = "cell-border",
-          colnames = rep("", ncol(LAD_result))
-        ) %>%
-          formatStyle(
-            columns = 1,
-            valueColumns = 1,
-            target = "cell",
-            color = "white",
-            backgroundColor = "#BF9053",
-            fontWeight = "bold"
-          ) %>%
-          formatStyle(
-            columns = 1,
-            target = "row",
-            color = styleEqual(c(" "), c('white')),
-            backgroundColor = styleEqual(c(" "), c('#BF9053')),
-            fontWeight = styleEqual(c(" "), c('bold'))
-          )
-      }
-
+          }, error = function(e) {
+            # Handle errors or exceptions here
+            output$result_output_alias <- renderText({
+              paste("Aliased or linearly dependent coefficients cannot be calculated. Error:", e$message)
+            })
+          })
+        })
+        output$vif_output <- renderPrint({
+          tryCatch({
+            output$result_output_vif <- renderText({
+              paste("VIF values", e$message)
+            })
+            vif_values <- vif(lm(paste(outcome, "~ ."), data = unpivoted_GA_metrics_data))
+            vif_values
+          }, error = function(e) {
+            # Handle errors or exceptions here
+            output$result_output_vif <- renderText({
+              paste("VIF for each predictor cannot be calculated. Error:", e$message)
+            })
+          })
+        })
+      })
     })
-
-
-
-  })
-
 
 
 }

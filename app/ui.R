@@ -14,6 +14,7 @@ library("L1pack")
 library("tibble")
 library("tidyr")
 library("DescTools")
+library("car")
 
 # HEADER ######
 header <- dashboardHeader(
@@ -264,13 +265,26 @@ body <- dashboardBody(
             fluidRow(class = 'separate',
               column(12,
                      p("LAD regression with backward selection method", class = "LAD_title"),
-                     uiOutput("modelingbutton_ui")
-
+                     uiOutput("modelingbutton_ui"),
               )
             ),
             fluidRow(
               column(12, class = 'LAD',
-                     DTOutput("LAD_dataset"))
+                     DTOutput("LAD_dataset")
+              )
+            ),
+            fluidRow(
+              column(12, class = 'LAD',
+                     p(),
+                     h4(textOutput("independent_output")),
+                     textOutput("result_output"),
+                     p(),
+                     verbatimTextOutput("alias_output"),
+                     textOutput("result_output_alias"),
+                     p(),
+                     verbatimTextOutput("vif_output"),
+                     textOutput("result_output_vif"),
+              )
             )
     )
 
